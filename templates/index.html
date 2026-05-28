@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XmediaPro — AI-Powered Facebook Reel Automation</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js">
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'inter': ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'brand': {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                            950: '#172554',
+                        },
+                        'navy': {
+                            800: '#0f172a',
+                            900: '#0a0f1e',
+                            950: '#060b18',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --sidebar-w: 240px;
+        }
+        * {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        .sidebar {
+            width: var(--sidebar-w);
+            min-height: 100vh;
+            background: linear-gradient(180deg, #0f172a 0%, #0a0f1e 100%);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 40;
+            transition: transform 0.3s ease;
+        }
+        .main-content {
+            margin-left: var(--sidebar-w);
+            min-height: 100vh;
+        }
+        .card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-color: #cbd5e1;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            padding: 0.7rem 1.6rem;
+            border-radius: 10px;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            transition: all 0.25s ease;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+        }
+        .btn-secondary {
+            background: #fff;
+            color: #1e293b;
+            padding: 0.7rem 1.6rem;
+            border-radius: 10px;
+            font-weight: 600;
+            border: 2px solid #e2e8f0;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+        .btn-secondary:hover {
+            border-color: #3b82f6;
+            color: #2563eb;
+            background: #f8faff;
+        }
+        .tab-btn {
+            padding: 0.65rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            border: none;
+            background: transparent;
+            width: 100%;
+            text-align: left;
+        }
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: #e2e8f0;
+        }
+        .tab-btn.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            font-weight: 600;
+        }
+        .stat-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.4rem;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+        }
+        .gradient-hero {
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 40%, #2563eb 70%, #3b82f6 100%);
+        }
+        .feature-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            max-width: 400px;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .toast-success {
+            background: #059669;
+            color: #fff;
+        }
+        .toast-error {
+            background: #dc2626;
+            color: #fff;
+        }
+        .toast-info {
+            background: #2563eb;
+            color: #fff;
+        }
+        input,
+        textarea,
+        select {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.7rem 1rem;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            background: #f8fafc;
+        }
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: #fff;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #334155;
+            margin-bottom: 0.35rem;
+            display: block;
+            letter-spacing: 0.01em;
+        }
+        .drop-zone {
+            border: 3px dashed #cbd5e1;
+            border-radius: 16px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8fafc;
+        }
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body class="font-inter antialiased">
+
+    <!-- ==================== LANDING PAGE ==================== -->
+    <div id="landing-page" class="w-full">
+        <!-- Header -->
+        <header class="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center text-white font-bold text-lg">X</div>
+                    <span class="text-xl font-bold text-gray-900">Xmedia<span class="text-blue-600">Pro</span></span>
+                </div>
+                <button onclick="navigate('dashboard')" class="btn-primary text-sm px-5 py-2.5">
+                    Launch Dashboard →
+                </button>
+            </div>
+        </header>
+
+        <!-- Hero -->
+        <section class="gradient-hero pt-28 pb-20 px-4">
+            <div class="max-w-4xl mx-auto text-center">
+                <div class="inline-block bg-white/15 text-white text-sm font-semibold px-4 py-1.5 rounded-full mb-6 backdrop-blur-sm">
+                    🚀 AI-Powered Facebook Reel Automation
+                </div>
+                <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-6">
+                    Create, Schedule & Publish
+                    <span class="text-blue-300">Facebook Reels</span> 10x Faster
+                </h1>
+                <p class="text-lg text-blue-100 max-w-2xl mx-auto mb-8">
+                    AI-generated captions & hashtags, bulk scheduling, real-time analytics — all from one dashboard. No login walls. Just connect and go.
+                </p>
+                <button onclick="navigate('dashboard')" class="btn-primary text-lg px-8 py-3.5 shadow-xl">
+                    Get Started Free →
+                </button>
+                <p class="text-blue-200 text-sm mt-4">No credit card • Your own Facebook App • Your own API keys</p>
+            </div>
+        </section>
+
+        <!-- Features -->
+        <section class="py-20 px-4 bg-white" id="features">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-3xl font-bold text-center text-gray-900 mb-4">Everything You Need</h2>
+                <p class="text-gray-500 text-center mb-12 max-w-xl mx-auto">A complete toolkit for content creators managing Facebook pages with reels.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="card">
+                        <div class="feature-icon bg-blue-100 text-blue-600 mb-4">🤖</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">AI Caption & Hashtags</h3>
+                        <p class="text-gray-500 text-sm">Powered by Groq + Llama 3. Generate engaging captions and trending hashtags in seconds.</p>
+                    </div>
+                    <div class="card">
+                        <div class="feature-icon bg-green-100 text-green-600 mb-4">📅</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Smart Scheduling</h3>
+                        <p class="text-gray-500 text-sm">Schedule reels for optimal posting times. Set it and forget it — we handle the rest.</p>
+                    </div>
+                    <div class="card">
+                        <div class="feature-icon bg-purple-100 text-purple-600 mb-4">📊</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Real Analytics</h3>
+                        <p class="text-gray-500 text-sm">Real Facebook Graph API metrics. Reach, engagement, followers, video views — all live.</p>
+                    </div>
+                    <div class="card">
+                        <div class="feature-icon bg-orange-100 text-orange-600 mb-4">📤</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Direct Reel Upload</h3>
+                        <p class="text-gray-500 text-sm">Upload local videos or from CDN URLs. Direct integration with Facebook's Reel API.</p>
+                    </div>
+                    <div class="card">
+                        <div class="feature-icon bg-teal-100 text-teal-600 mb-4">🔗</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Multi-Page Manager</h3>
+                        <p class="text-gray-500 text-sm">Connect and manage multiple Facebook pages. Switch seamlessly between them.</p>
+                    </div>
+                    <div class="card">
+                        <div class="feature-icon bg-red-100 text-red-600 mb-4">🔐</div>
+                        <h3 class="font-semibold text-gray-900 mb-2">Your Keys, Your Data</h3>
+                        <p class="text-gray-500 text-sm">You bring your Facebook App credentials & Groq key. Full control, zero vendor lock-in.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section class="py-20 px-4 bg-gray-50" id="how-it-works">
+            <div class="max-w-4xl mx-auto">
+                <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">How It Works</h2>
+                <div class="space-y-6">
+                    <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">1</div><div><h4 class="font-semibold text-gray-900">Create a Facebook App</h4><p class="text-gray-500 text-sm">Go to developers.facebook.com, create an app, and get your App ID & Secret.</p></div></div>
+                    <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">2</div><div><h4 class="font-semibold text-gray-900">Enter Credentials in Settings</h4><p class="text-gray-500 text-sm">Paste your Facebook App ID/Secret and Groq API key into the dashboard settings.</p></div></div>
+                    <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">3</div><div><h4 class="font-semibold text-gray-900">Connect Your Pages</h4><p class="text-gray-500 text-sm">Click "Connect Facebook" to authorize and fetch all your managed pages.</p></div></div>
+                    <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">4</div><div><h4 class="font-semibold text-gray-900">Generate & Upload</h4><p class="text-gray-500 text-sm">Use AI Studio for captions, upload your reel video, and schedule or publish instantly.</p></div></div>
+                    <div class="flex items-start gap-4"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">5</div><div><h4 class="font-semibold text-gray-900">Track Performance</h4><p class="text-gray-500 text-sm">Monitor real analytics from Facebook Insights directly in your dashboard.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing -->
+        <section class="py-20 px-4 bg-white" id="pricing">
+            <div class="max-w-5xl mx-auto">
+                <h2 class="text-3xl font-bold text-center text-gray-900 mb-12">Simple Pricing</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="card text-center border-2 border-blue-200 relative">
+                        <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">CURRENT</div>
+                        <h3 class="font-bold text-xl text-gray-900 mt-2">Free</h3>
+                        <p class="text-4xl font-extrabold text-gray-900 my-3">$0</p>
+                        <p class="text-gray-500 text-sm mb-4">Self-hosted • Your own keys</p>
+                        <ul class="text-sm text-gray-600 space-y-2 text-left">
+                            <li>✓ AI Caption Generator</li><li>✓ Reel Upload & Schedule</li><li>✓ Multi-Page Support</li><li>✓ Basic Analytics</li>
+                        </ul>
+                    </div>
+                    <div class="card text-center">
+                        <h3 class="font-bold text-xl text-gray-900">Pro</h3>
+                        <p class="text-4xl font-extrabold text-gray-900 my-3">$29<span class="text-lg text-gray-400">/mo</span></p>
+                        <p class="text-gray-500 text-sm mb-4">Advanced features</p>
+                        <ul class="text-sm text-gray-600 space-y-2 text-left">
+                            <li>✓ Everything in Free</li><li>✓ Advanced Scheduling</li><li>✓ Priority Support</li><li>✓ Custom Branding</li>
+                        </ul>
+                    </div>
+                    <div class="card text-center">
+                        <h3 class="font-bold text-xl text-gray-900">Agency</h3>
+                        <p class="text-4xl font-extrabold text-gray-900 my-3">$99<span class="text-lg text-gray-400">/mo</span></p>
+                        <p class="text-gray-500 text-sm mb-4">For teams</p>
+                        <ul class="text-sm text-gray-600 space-y-2 text-left">
+                            <li>✓ Everything in Pro</li><li>✓ Multi-User Support</li><li>✓ White Label</li><li>✓ API Access</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="py-20 px-4 gradient-hero text-center">
+            <h2 class="text-3xl font-bold text-white mb-4">Ready to Automate Your Reels?</h2>
+            <p class="text-blue-100 mb-8 max-w-lg mx-auto">Join thousands of creators using XmediaPro to streamline their Facebook content workflow.</p>
+            <button onclick="navigate('dashboard')" class="btn-secondary text-lg px-8 py-3.5">Launch Dashboard Now →</button>
+        </section>
+
+        <!-- Footer -->
+        <footer class="bg-gray-900 text-gray-400 py-10 px-4 text-center text-sm">
+            <p class="font-semibold text-white">Riyad Mahfuz</p>
+            <p>📧 riyad@xmediapro.dev • 📱 +880 1700-000000</p>
+            <a href="https://facebook.com/riyad.mahfuz" target="_blank" rel="noopener" class="text-blue-400 hover:underline">facebook.com/riyad.mahfuz</a>
+            <p class="mt-4 text-gray-600">© 2026 XmediaPro. Built for creators.</p>
+        </footer>
+    </div>
+
+    <!-- ==================== DASHBOARD PAGE ==================== -->
+    <div id="dashboard-page" class="hidden">
+        <!-- Sidebar -->
+        <aside class="sidebar flex flex-col" id="sidebar">
+            <div class="p-5 border-b border-white/10 flex items-center gap-3">
+                <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center text-white font-bold">X</div>
+                <span class="text-white font-bold text-lg">XmediaPro</span>
+            </div>
+            <nav class="flex-1 p-3 space-y-1 overflow-y-auto">
+                <button class="tab-btn active" onclick="loadTab('overview')" data-tab="overview">
+                    <span>📋</span> Overview
+                </button>
+                <button class="tab-btn" onclick="loadTab('pages')" data-tab="pages">
+                    <span>📄</span> Pages
+                </button>
+                <button class="tab-btn" onclick="loadTab('media')" data-tab="media">
+                    <span>🎬</span> Media
+                </button>
+                <button class="tab-btn" onclick="loadTab('aistudio')" data-tab="aistudio">
+                    <span>🤖</span> AI Studio
+                </button>
+                <button class="tab-btn" onclick="loadTab('scheduler')" data-tab="scheduler">
+                    <span>📅</span> Scheduler
+                </button>
+                <button class="tab-btn" onclick="loadTab('analytics')" data-tab="analytics">
+                    <span>📊</span> Analytics
+                </button>
+                <button class="tab-btn" onclick="loadTab('settings')" data-tab="settings">
+                    <span>⚙️</span> Settings
+                </button>
+            </nav>
+            <div class="p-4 border-t border-white/10">
+                <button onclick="navigate('landing')" class="text-gray-400 text-sm hover:text-white transition w-full text-left">← Back to Landing</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <div class="main-content bg-gray-50 min-h-screen" id="main-content-area">
+            <div id="tab-content" class="p-6 lg:p-8"></div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <script>
+        // ==================== GLOBAL STATE ====================
+        const API_BASE = window.location.origin;
+        let currentTab = 'overview';
+        let analyticsChart = null;
+        let savedAppId = null;
+        let fbSdkLoaded = false;
+
+        // ==================== NAVIGATION ====================
+        function navigate(page) {
+            const landing = document.getElementById('landing-page');
+            const dashboard = document.getElementById('dashboard-page');
+            if (page === 'dashboard') {
+                landing.classList.add('hidden');
+                dashboard.classList.remove('hidden');
+                loadTab('overview');
+                fetchSettingsInfo();
+            } else {
+                landing.classList.remove('hidden');
+                dashboard.classList.add('hidden');
+            }
+            window.scrollTo(0, 0);
+        }
+
+        // ==================== TOAST ====================
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // ==================== TAB LOADING ====================
+        function loadTab(tabName) {
+            currentTab = tabName;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            const content = document.getElementById('tab-content');
+            switch (tabName) {
+                case 'overview':
+                    content.innerHTML = renderOverview();
+                    break;
+                case 'pages':
+                    content.innerHTML = renderPages();
+                    break;
+                case 'media':
+                    content.innerHTML = renderMedia();
+                    break;
+                case 'aistudio':
+                    content.innerHTML = renderAIStudio();
+                    break;
+                case 'scheduler':
+                    content.innerHTML = renderScheduler();
+                    break;
+                case 'analytics':
+                    content.innerHTML = renderAnalytics();
+                    setTimeout(initAnalyticsChart, 300);
+                    break;
+                case 'settings':
+                    content.innerHTML = renderSettings();
+                    setTimeout(populateSettings, 200);
+                    break;
+                default:
+                    content.innerHTML = renderOverview();
+            }
+        }
+
+        // ==================== RENDER FUNCTIONS ====================
+        function renderOverview() {
+            return `
+            <div class="space-y-6">
+              <div>
+                <h1 class="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
+                <p class="text-gray-500">Welcome to XmediaPro. Manage your Facebook Reels efficiently.</p>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Connected Pages</p><p class="text-3xl font-bold text-gray-900" id="stat-pages">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Reels Posted</p><p class="text-3xl font-bold text-gray-900" id="stat-reels">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Scheduled</p><p class="text-3xl font-bold text-gray-900" id="stat-scheduled">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Total Reach</p><p class="text-3xl font-bold text-gray-900" id="stat-reach">0</p></div>
+              </div>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                <div class="flex flex-wrap gap-3">
+                  <button class="btn-primary" onclick="loadTab('pages'); fetchPages();">📄 Fetch My Pages</button>
+                  <button class="btn-secondary" onclick="loadTab('aistudio')">🤖 Open AI Studio</button>
+                  <button class="btn-secondary" onclick="loadTab('media')">🎬 Upload Reel</button>
+                  <button class="btn-secondary" onclick="loadTab('settings')">⚙️ Settings</button>
+                </div>
+              </div>
+              <div id="overview-pages-preview" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+            </div>`;
+        }
+
+        function renderPages() {
+            return `
+            <div class="space-y-6">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h1 class="text-2xl font-bold text-gray-900">Facebook Pages</h1>
+                  <p class="text-gray-500">Connect and manage your Facebook pages.</p>
+                </div>
+                <button class="btn-primary" onclick="connectFacebook()">🔗 Connect Facebook</button>
+              </div>
+              <div id="pages-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="card text-center text-gray-400 py-8">Click "Connect Facebook" to fetch your pages.</div>
+              </div>
+            </div>`;
+        }
+
+        function renderMedia() {
+            return `
+            <div class="space-y-6">
+              <h1 class="text-2xl font-bold text-gray-900">Media Upload</h1>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Upload Reel Video</h3>
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('video-file-input').click()">
+                  <p class="text-gray-500 font-medium">📁 Drag & drop a video file here or click to browse</p>
+                  <p class="text-gray-400 text-sm mt-1">Supports MP4, MOV • Max 1GB</p>
+                </div>
+                <input type="file" id="video-file-input" accept="video/*" class="hidden" onchange="handleVideoFileSelect(event)">
+                <div id="selected-file-info" class="mt-3 text-sm text-gray-600 hidden"></div>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label>Select Page</label><select id="media-page-select"><option value="">-- Connect a page first --</option></select></div>
+                  <div><label>Caption</label><input type="text" id="media-caption" placeholder="Write a caption..."></div>
+                </div>
+                <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label>Schedule (optional)</label><input type="datetime-local" id="media-schedule"></div>
+                  <div class="flex items-end"><button class="btn-primary w-full" onclick="uploadReel()">🚀 Upload & Publish</button></div>
+                </div>
+                <div id="upload-progress" class="mt-3 hidden"></div>
+              </div>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Or Upload from URL</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label>Video URL (CDN/Hosted)</label><input type="url" id="hosted-url" placeholder="https://example.com/video.mp4"></div>
+                  <div><label>Select Page</label><select id="hosted-page-select"><option value="">-- Connect a page first --</option></select></div>
+                </div>
+                <div class="mt-3"><button class="btn-primary" onclick="uploadHostedReel()">📤 Upload from URL</button></div>
+              </div>
+              <div id="recent-reels" class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Recent Reels</h3>
+                <div id="reels-list-content"><p class="text-gray-400">Loading...</p></div>
+              </div>
+            </div>`;
+        }
+
+        function renderAIStudio() {
+            return `
+            <div class="space-y-6">
+              <h1 class="text-2xl font-bold text-gray-900">🤖 AI Studio</h1>
+              <p class="text-gray-500">Generate engaging captions and hashtags powered by Groq + Llama 3.</p>
+              <div class="card">
+                <label>Describe your reel content</label>
+                <textarea id="ai-description" rows="4" placeholder="e.g., A behind-the-scenes look at our coffee roasting process..."></textarea>
+                <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label>Tone</label><select id="ai-tone"><option>Professional</option><option>Casual</option><option>Humorous</option><option>Inspirational</option><option>Educational</option></select></div>
+                  <div><label>Language</label><select id="ai-language"><option>English</option><option>Spanish</option><option>French</option><option>German</option><option>Bengali</option></select></div>
+                </div>
+                <button class="btn-primary mt-4" onclick="generateAI()" id="ai-generate-btn">✨ Generate Caption & Hashtags</button>
+                <div id="ai-loading" class="hidden mt-3 text-blue-600 font-medium">Generating... please wait ⏳</div>
+                <div id="ai-result" class="hidden mt-4 space-y-3">
+                  <div><label>Generated Caption</label><textarea id="ai-caption-output" rows="3" class="bg-green-50 border-green-300"></textarea></div>
+                  <div><label>Generated Hashtags</label><textarea id="ai-hashtags-output" rows="2" class="bg-blue-50 border-blue-300"></textarea></div>
+                  <button class="btn-secondary text-sm" onclick="copyAIResults()">📋 Copy Both</button>
+                </div>
+              </div>
+            </div>`;
+        }
+
+        function renderScheduler() {
+            return `
+            <div class="space-y-6">
+              <h1 class="text-2xl font-bold text-gray-900">📅 Scheduler</h1>
+              <p class="text-gray-500">View and manage your scheduled reels.</p>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Scheduled Posts</h3>
+                <div id="scheduled-list"><p class="text-gray-400">Loading scheduled reels...</p></div>
+              </div>
+            </div>`;
+        }
+
+        function renderAnalytics() {
+            return `
+            <div class="space-y-6">
+              <h1 class="text-2xl font-bold text-gray-900">📊 Analytics</h1>
+              <p class="text-gray-500">Real metrics from Facebook Graph API. Connect a page to see data.</p>
+              <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Reach</p><p class="text-3xl font-bold text-gray-900" id="an-reach">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Engagement</p><p class="text-3xl font-bold text-gray-900" id="an-engagement">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Followers</p><p class="text-3xl font-bold text-gray-900" id="an-followers">0</p></div>
+                <div class="stat-card"><p class="text-gray-400 text-xs uppercase font-semibold">Video Views</p><p class="text-3xl font-bold text-gray-900" id="an-video-views">0</p></div>
+              </div>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Reach Over Time</h3>
+                <canvas id="analytics-chart" height="280"></canvas>
+              </div>
+              <div class="card">
+                <label>Select Page for Analytics</label>
+                <select id="analytics-page-select" onchange="fetchAnalytics()"><option value="">-- Select a page --</option></select>
+              </div>
+            </div>`;
+        }
+
+        function renderSettings() {
+            return `
+            <div class="space-y-6 max-w-2xl">
+              <h1 class="text-2xl font-bold text-gray-900">⚙️ Settings</h1>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Facebook App Credentials</h3>
+                <p class="text-sm text-gray-500 mb-4">Get these from <a href="https://developers.facebook.com" target="_blank" class="text-blue-600 underline">developers.facebook.com</a></p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label>Facebook App ID</label><input type="text" id="settings-fb-app-id" placeholder="Enter your App ID"></div>
+                  <div><label>Facebook App Secret</label><input type="password" id="settings-fb-app-secret" placeholder="Enter your App Secret"></div>
+                </div>
+                <button class="btn-primary mt-3" onclick="saveFBCredentials()">💾 Save Facebook Credentials</button>
+                <div id="fb-settings-status" class="text-sm mt-2"></div>
+              </div>
+              <div class="card">
+                <h3 class="font-semibold text-gray-900 mb-4">Groq API Key</h3>
+                <p class="text-sm text-gray-500 mb-4">Get your key from <a href="https://console.groq.com" target="_blank" class="text-blue-600 underline">console.groq.com</a></p>
+                <div><label>Groq API Key</label><input type="password" id="settings-groq-key" placeholder="gsk_..."></div>
+                <button class="btn-primary mt-3" onclick="saveGroqKey()">💾 Save Groq Key</button>
+                <div id="groq-settings-status" class="text-sm mt-2"></div>
+              </div>
+            </div>`;
+        }
+
+        // ==================== API CALLS ====================
+        async function apiCall(method, path, body = null) {
+            const opts = {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+            };
+            if (body && method !== 'GET') opts.body = JSON.stringify(body);
+            try {
+                const res = await fetch(`${API_BASE}${path}`, opts);
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+                return data;
+            } catch (err) {
+                console.error('API Error:', err);
+                throw err;
+            }
+        }
+
+        async function fetchSettingsInfo() {
+            try {
+                const fbData = await apiCall('GET', '/api/settings/facebook');
+                if (fbData.app_id) savedAppId = fbData.app_id;
+            } catch (e) { /* silent */ }
+        }
+
+        async function saveFBCredentials() {
+            const appId = document.getElementById('settings-fb-app-id').value.trim();
+            const appSecret = document.getElementById('settings-fb-app-secret').value.trim();
+            if (!appId || !appSecret) {
+                showToast('Please enter both App ID and App Secret.', 'error');
+                return;
+            }
+            try {
+                await apiCall('POST', '/api/settings/facebook', { app_id: appId, app_secret: appSecret });
+                savedAppId = appId;
+                document.getElementById('fb-settings-status').innerHTML =
+                    '<span class="text-green-600">✅ Facebook credentials saved!</span>';
+                showToast('Facebook credentials saved!', 'success');
+            } catch (err) {
+                document.getElementById('fb-settings-status').innerHTML =
+                    `<span class="text-red-600">❌ ${err.message}</span>`;
+                showToast('Failed to save credentials.', 'error');
+            }
+        }
+
+        async function saveGroqKey() {
+            const key = document.getElementById('settings-groq-key').value.trim();
+            if (!key) { showToast('Please enter your Groq API key.', 'error'); return; }
+            try {
+                await apiCall('POST', '/api/settings/groq', { groq_key: key });
+                document.getElementById('groq-settings-status').innerHTML =
+                    '<span class="text-green-600">✅ Groq API key saved!</span>';
+                showToast('Groq API key saved!', 'success');
+            } catch (err) {
+                document.getElementById('groq-settings-status').innerHTML =
+                    `<span class="text-red-600">❌ ${err.message}</span>`;
+                showToast('Failed to save Groq key.', 'error');
+            }
+        }
+
+        async function populateSettings() {
+            try {
+                const fbData = await apiCall('GET', '/api/settings/facebook');
+                if (fbData.app_id) {
+                    document.getElementById('settings-fb-app-id').value = fbData.app_id;
+                    document.getElementById('settings-fb-app-secret').value = '••••••••';
+                    document.getElementById('fb-settings-status').innerHTML =
+                        '<span class="text-green-600">✅ App ID is saved. Re-enter secret to update.</span>';
+                    savedAppId = fbData.app_id;
+                }
+            } catch (e) { /* silent */ }
+            try {
+                const groqData = await apiCall('GET', '/api/settings/groq');
+                if (groqData.has_key) {
+                    document.getElementById('settings-groq-key').value = '••••••••';
+                    document.getElementById('groq-settings-status').innerHTML =
+                        '<span class="text-green-600">✅ Groq key is saved. Re-enter to update.</span>';
+                }
+            } catch (e) { /* silent */ }
+        }
+
+        // ==================== FACEBOOK CONNECT ====================
+        function loadFBSDK(callback) {
+            if (fbSdkLoaded && typeof FB !== 'undefined') { callback(); return; }
+            if (!savedAppId) {
+                showToast('Please save your Facebook App ID in Settings first.', 'error');
+                loadTab('settings');
+                return;
+            }
+            const existing = document.getElementById('fb-sdk-script');
+            if (existing) existing.remove();
+            delete window.FB;
+            fbSdkLoaded = false;
+
+            const script = document.createElement('script');
+            script.id = 'fb-sdk-script';
+            script.src = 'https://connect.facebook.net/en_US/sdk.js';
+            script.onload = () => {
+                FB.init({
+                    appId: savedAppId,
+                    cookie: true,
+                    xfbml: true,
+                    version: 'v19.0'
+                });
+                fbSdkLoaded = true;
+                callback();
+            };
+            script.onerror = () => {
+                showToast('Failed to load Facebook SDK. Check your connection.', 'error');
+            };
+            document.head.appendChild(script);
+        }
+
+        function connectFacebook() {
+            loadFBSDK(() => {
+                FB.login(function(response) {
+                    if (response.authResponse) {
+                        const shortLivedToken = response.authResponse.accessToken;
+                        exchangeToken(shortLivedToken);
+                    } else {
+                        showToast('Facebook login was cancelled or failed.', 'error');
+                    }
+                }, {
+                    scope: 'pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata',
+                    return_scopes: true
+                });
+            });
+        }
+
+        async function exchangeToken(shortLivedToken) {
+            try {
+                showToast('Connecting to Facebook...', 'info');
+                const data = await apiCall('POST', '/api/connect-facebook', { short_lived_token: shortLivedToken });
+                showToast(`Connected! Found ${data.pages_count} page(s).`, 'success');
+                fetchPages();
+                if (currentTab === 'overview') fetchPagesForOverview();
+            } catch (err) {
+                showToast(`Connection failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function fetchPages() {
+            try {
+                const data = await apiCall('GET', '/api/pages');
+                const container = document.getElementById('pages-list');
+                if (!container) return;
+                if (data.pages && data.pages.length > 0) {
+                    container.innerHTML = data.pages.map(p => `
+                <div class="card">
+                  <h4 class="font-semibold text-gray-900">${escapeHtml(p.name)}</h4>
+                  <p class="text-sm text-gray-500">ID: ${escapeHtml(p.id)}</p>
+                  <p class="text-sm text-gray-500">👥 Fans: ${(p.fan_count || 0).toLocaleString()}</p>
+                  <span class="inline-block mt-2 text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">✅ Connected</span>
+                </div>`).join('');
+                    document.getElementById('stat-pages') && (document.getElementById('stat-pages').textContent = data.pages.length);
+                } else {
+                    container.innerHTML = '<div class="card text-center text-gray-400 py-8">No pages found. Click "Connect Facebook" to get started.</div>';
+                }
+                updatePageSelects(data.pages || []);
+            } catch (err) {
+                const container = document.getElementById('pages-list');
+                if (container) container.innerHTML = `<div class="card text-center text-red-400 py-8">Error loading pages: ${escapeHtml(err.message)}</div>`;
+            }
+        }
+
+        async function fetchPagesForOverview() {
+            try {
+                const data = await apiCall('GET', '/api/pages');
+                const container = document.getElementById('overview-pages-preview');
+                if (!container) return;
+                if (data.pages && data.pages.length > 0) {
+                    container.innerHTML = data.pages.slice(0, 6).map(p => `
+                <div class="card">
+                  <h4 class="font-semibold text-gray-900">${escapeHtml(p.name)}</h4>
+                  <p class="text-sm text-gray-500">👥 ${(p.fan_count || 0).toLocaleString()} fans</p>
+                </div>`).join('');
+                    document.getElementById('stat-pages') && (document.getElementById('stat-pages').textContent = data.pages.length);
+                }
+                updatePageSelects(data.pages || []);
+            } catch (e) { /* silent */ }
+        }
+
+        function updatePageSelects(pages) {
+            const selects = ['media-page-select', 'hosted-page-select', 'analytics-page-select'];
+            selects.forEach(sid => {
+                const sel = document.getElementById(sid);
+                if (!sel) return;
+                sel.innerHTML = '<option value="">-- Select a page --</option>' +
+                    pages.map(p => `<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} (${escapeHtml(p.id)})</option>`).join('');
+            });
+        }
+
+        // ==================== AI GENERATION ====================
+        async function generateAI() {
+            const description = document.getElementById('ai-description').value.trim();
+            if (!description) { showToast('Please describe your reel content.', 'error'); return; }
+            const tone = document.getElementById('ai-tone').value;
+            const language = document.getElementById('ai-language').value;
+            const btn = document.getElementById('ai-generate-btn');
+            const loading = document.getElementById('ai-loading');
+            const result = document.getElementById('ai-result');
+            btn.disabled = true;
+            btn.textContent = '⏳ Generating...';
+            loading.classList.remove('hidden');
+            result.classList.add('hidden');
+            try {
+                const data = await apiCall('POST', '/api/ai/generate', { description, tone, language });
+                document.getElementById('ai-caption-output').value = data.caption || '';
+                document.getElementById('ai-hashtags-output').value = data.hashtags || '';
+                result.classList.remove('hidden');
+                showToast('Caption & hashtags generated!', 'success');
+            } catch (err) {
+                showToast(`AI generation failed: ${err.message}. Have you saved your Groq key?`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✨ Generate Caption & Hashtags';
+                loading.classList.add('hidden');
+            }
+        }
+
+        function copyAIResults() {
+            const caption = document.getElementById('ai-caption-output').value;
+            const hashtags = document.getElementById('ai-hashtags-output').value;
+            const text = caption + '\n\n' + hashtags;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('Copied to clipboard!', 'success');
+            }).catch(() => {
+                showToast('Failed to copy. Please select and copy manually.', 'error');
+            });
+        }
+
+        // ==================== REEL UPLOAD ====================
+        let selectedVideoFile = null;
+
+        function handleVideoFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedVideoFile = file;
+                const info = document.getElementById('selected-file-info');
+                info.classList.remove('hidden');
+                info.innerHTML = `📁 Selected: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropZone = document.getElementById('drop-zone');
+            if (dropZone) {
+                dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+                dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('dragover');
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('video/')) {
+                        selectedVideoFile = file;
+                        const info = document.getElementById('selected-file-info');
+                        if (info) {
+                            info.classList.remove('hidden');
+                            info.innerHTML = `📁 Selected: <strong>${escapeHtml(file.name)}</strong> (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                        }
+                    }
+                });
+            }
+        });
+
+        async function uploadReel() {
+            const pageId = document.getElementById('media-page-select').value;
+            const caption = document.getElementById('media-caption').value.trim();
+            const schedule = document.getElementById('media-schedule').value;
+            if (!pageId) { showToast('Please select a Facebook page.', 'error'); return; }
+            if (!selectedVideoFile) { showToast('Please select a video file.', 'error'); return; }
+
+            const progressDiv = document.getElementById('upload-progress');
+            progressDiv.classList.remove('hidden');
+            progressDiv.innerHTML = '<p class="text-blue-600 font-medium">⏳ Uploading reel... This may take a moment.</p>';
+
+            const formData = new FormData();
+            formData.append('video', selectedVideoFile);
+            formData.append('page_id', pageId);
+            formData.append('caption', caption);
+            if (schedule) formData.append('scheduled_publish_time', new Date(schedule).getTime() / 1000);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/reels/upload-local`, {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Upload failed');
+                progressDiv.innerHTML = `<p class="text-green-600 font-medium">✅ Reel uploaded successfully! Video ID: ${data.video_id}</p>`;
+                showToast('Reel published successfully!', 'success');
+                selectedVideoFile = null;
+                document.getElementById('selected-file-info').classList.add('hidden');
+                document.getElementById('video-file-input').value = '';
+                loadReelsList();
+            } catch (err) {
+                progressDiv.innerHTML = `<p class="text-red-600 font-medium">❌ ${escapeHtml(err.message)}</p>`;
+                showToast(`Upload failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function uploadHostedReel() {
+            const pageId = document.getElementById('hosted-page-select').value;
+            const url = document.getElementById('hosted-url').value.trim();
+            if (!pageId) { showToast('Please select a Facebook page.', 'error'); return; }
+            if (!url) { showToast('Please enter a video URL.', 'error'); return; }
+            showToast('Uploading from URL...', 'info');
+            try {
+                const data = await apiCall('POST', '/api/reels/upload-hosted', { page_id: pageId, file_url: url });
+                showToast(`Reel upload started! Video ID: ${data.video_id}`, 'success');
+                loadReelsList();
+            } catch (err) {
+                showToast(`Upload failed: ${err.message}`, 'error');
+            }
+        }
+
+        async function loadReelsList() {
+            const container = document.getElementById('reels-list-content');
+            if (!container) return;
+            try {
+                const data = await apiCall('GET', '/api/reels');
+                if (data.reels && data.reels.length > 0) {
+                    container.innerHTML = data.reels.map(r => `
+                <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                  <div>
+                    <p class="font-medium text-gray-900">Video ID: ${escapeHtml(r.video_id)}</p>
+                    <p class="text-xs text-gray-500">Status: ${escapeHtml(r.status)} • ${escapeHtml(r.created_at || '')}</p>
+                  </div>
+                  <span class="text-xs px-2 py-1 rounded-full ${r.status === 'published' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}">${escapeHtml(r.status)}</span>
+                </div>`).join('');
+                    document.getElementById('stat-reels') && (document.getElementById('stat-reels').textContent = data.reels.length);
+                } else {
+                    container.innerHTML = '<p class="text-gray-400">No reels posted yet.</p>';
+                }
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-400">Could not load reels.</p>';
+            }
+        }
+
+        // ==================== ANALYTICS ====================
+        function initAnalyticsChart() {
+            const ctx = document.getElementById('analytics-chart');
+            if (!ctx) return;
+            if (analyticsChart) analyticsChart.destroy();
+            analyticsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                    datasets: [{
+                        label: 'Reach',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#3b82f6',
+                        backgroundColor: 'rgba(59,130,246,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'bottom' } },
+                    scales: { y: { beginAtZero: true } },
+                },
+            });
+        }
+
+        async function fetchAnalytics() {
+            const pageId = document.getElementById('analytics-page-select')?.value;
+            if (!pageId) return;
+            try {
+                const data = await apiCall('GET', `/api/analytics/${pageId}`);
+                document.getElementById('an-reach').textContent = (data.reach || 0).toLocaleString();
+                document.getElementById('an-engagement').textContent = (data.engagement || 0).toLocaleString();
+                document.getElementById('an-followers').textContent = (data.followers || 0).toLocaleString();
+                document.getElementById('an-video-views').textContent = (data.video_views || 0).toLocaleString();
+                if (analyticsChart && data.daily_reach) {
+                    analyticsChart.data.labels = data.daily_reach.map(d => d.day || '');
+                    analyticsChart.data.datasets[0].data = data.daily_reach.map(d => d.value || 0);
+                    analyticsChart.update();
+                }
+                document.getElementById('stat-reach') && (document.getElementById('stat-reach').textContent = (data.reach || 0).toLocaleString());
+            } catch (err) {
+                showToast(`Analytics fetch failed: ${err.message}`, 'error');
+            }
+        }
+
+        // ==================== SCHEDULER ====================
+        async function loadScheduledReels() {
+            const container = document.getElementById('scheduled-list');
+            if (!container) return;
+            try {
+                const data = await apiCall('GET', '/api/reels');
+                const scheduled = (data.reels || []).filter(r => r.status === 'scheduled');
+                if (scheduled.length > 0) {
+                    container.innerHTML = scheduled.map(r => `
+                <div class="flex items-center justify-between py-2 border-b border-gray-100">
+                  <div>
+                    <p class="font-medium text-gray-900">Video ID: ${escapeHtml(r.video_id)}</p>
+                    <p class="text-xs text-gray-500">Scheduled: ${escapeHtml(r.scheduled_time || 'N/A')}</p>
+                  </div>
+                  <button class="btn-secondary text-xs px-3 py-1" onclick="publishNow('${escapeHtml(r.video_id)}')">Publish Now</button>
+                </div>`).join('');
+                    document.getElementById('stat-scheduled') && (document.getElementById('stat-scheduled').textContent = scheduled.length);
+                } else {
+                    container.innerHTML = '<p class="text-gray-400">No scheduled reels.</p>';
+                }
+            } catch (e) {
+                container.innerHTML = '<p class="text-gray-400">Could not load scheduled reels.</p>';
+            }
+        }
+
+        async function publishNow(videoId) {
+            try {
+                await apiCall('POST', `/api/reels/publish/${videoId}`);
+                showToast('Reel published!', 'success');
+                loadScheduledReels();
+                loadReelsList();
+            } catch (err) {
+                showToast(`Publish failed: ${err.message}`, 'error');
+            }
+        }
+
+        // ==================== UTILS ====================
+        function escapeHtml(str) {
+            if (!str) return '';
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchSettingsInfo();
+            if (window.location.hash === '#dashboard') {
+                navigate('dashboard');
+            }
+        });
+
+        const originalLoadTab = loadTab;
+        loadTab = function(tabName) {
+            originalLoadTab(tabName);
+            if (tabName === 'media') setTimeout(loadReelsList, 400);
+            if (tabName === 'scheduler') setTimeout(loadScheduledReels, 400);
+            if (tabName === 'pages') setTimeout(fetchPages, 400);
+            if (tabName === 'overview') setTimeout(fetchPagesForOverview, 400);
+            if (tabName === 'analytics') setTimeout(() => {
+                fetchPages().then(() => {
+                    const sel = document.getElementById('analytics-page-select');
+                    if (sel && sel.value) fetchAnalytics();
+                });
+            }, 400);
+        };
+
+        console.log('🚀 XmediaPro Dashboard Ready');
+        console.log('📋 API Base:', API_BASE);
+        console.log('💡 Tip: Save your Facebook credentials & Groq key in Settings to get started.');
+    </script>
+</body>
+</html>
