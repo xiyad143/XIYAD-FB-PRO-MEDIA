@@ -7,7 +7,6 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, jsonify, flash, send_from_directory
 )
-from flask_session import Session
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -21,21 +20,20 @@ except ImportError:
 
 app = Flask(__name__)
 
+# ----- Secure Configuration -----
 app.config.update(
     SECRET_KEY=os.getenv('SECRET_KEY', secrets.token_hex(32)),
-    SESSION_TYPE='filesystem',
-    SESSION_PERMANENT=False,
-    SESSION_USE_SIGNER=True,
+    # Use server‑side signed cookies (no external session storage needed)
+    SESSION_COOKIE_SECURE=True,          # only send over HTTPS
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False,         # set True with HTTPS
-    UPLOAD_FOLDER=os.path.join(os.getcwd(), 'uploads'),
-    MAX_CONTENT_LENGTH=500 * 1024 * 1024  # 500 MB
+    # Upload folder: use /tmp for Render (writable)
+    UPLOAD_FOLDER=os.path.join('/tmp', 'uploads'),
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024   # 500 MB
 )
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
-Session(app)
 csrf = CSRFProtect(app)
 limiter = Limiter(
     get_remote_address,
@@ -322,7 +320,7 @@ def publish_video(page_id):
     data = request.json
     filename = data.get('filename')
     caption = data.get('caption', '')
-    scheduled_time = data.get('scheduled_time')  # Unix timestamp
+    scheduled_time = data.get('scheduled_time')
 
     if not filename:
         return jsonify({'error': 'No file specified'}), 400
