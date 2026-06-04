@@ -1,14 +1,17 @@
 import os
 import secrets
 import requests
+import uuid
+from datetime import datetime
 from flask import (
     Flask, render_template, request, redirect, url_for,
-    session, jsonify, flash
+    session, jsonify, flash, send_from_directory
 )
 from flask_session import Session
 from flask_wtf.csrf import CSRFProtect, CSRFError
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from werkzeug.utils import secure_filename
 
 try:
     from dotenv import load_dotenv
@@ -25,8 +28,12 @@ app.config.update(
     SESSION_USE_SIGNER=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False,  # set True with HTTPS
+    SESSION_COOKIE_SECURE=False,
+    UPLOAD_FOLDER=os.path.join(os.getcwd(), 'uploads'),
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024  # 500 MB max upload size
 )
+
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 Session(app)
 csrf = CSRFProtect(app)
@@ -39,7 +46,7 @@ limiter = Limiter(
 
 GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-# ---------- Helpers ----------
+# ---------- Helpers (same as before) ----------
 def fetch_facebook_user(access_token):
     try:
         resp = requests.get(f'{GRAPH_URL}/me', params={
@@ -96,7 +103,7 @@ def exchange_code_for_token(app_id, app_secret, redirect_uri, code):
         pass
     return None
 
-# ---------- Routes ----------
+# ---------- Authentication Routes (unchanged) ----------
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -107,7 +114,6 @@ def logout():
     flash('Logged out.', 'info')
     return redirect(url_for('index'))
 
-# Method 1: Token login
 @app.route('/connect/token', methods=['POST'])
 @limiter.limit("5 per minute")
 def connect_token():
@@ -124,7 +130,6 @@ def connect_token():
     session['login_method'] = 'token'
     return jsonify({'success': True, 'user': user, 'pages_count': len(pages)})
 
-# Method 2: Save App ID + Secret
 @app.route('/connect/app', methods=['POST'])
 @limiter.limit("5 per minute")
 def connect_app():
@@ -136,7 +141,6 @@ def connect_app():
     session['app_secret'] = app_secret
     return jsonify({'success': True})
 
-# Start OAuth
 @app.route('/connect/facebook')
 def facebook_oauth_start():
     if not session.get('app_id') or not session.get('app_secret'):
@@ -146,12 +150,11 @@ def facebook_oauth_start():
     fb_url = (
         f'https://www.facebook.com/v19.0/dialog/oauth?'
         f'client_id={session["app_id"]}&redirect_uri={redirect_uri}'
-        f'&scope=pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata'
+        f'&scope=pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,pages_read_engagement,pages_manage_posts'
         f'&response_type=code'
     )
     return redirect(fb_url)
 
-# OAuth callback
 @app.route('/connect/facebook/callback')
 def facebook_oauth_callback():
     code = request.args.get('code')
@@ -180,7 +183,7 @@ def facebook_oauth_callback():
     flash(f'Welcome, {user["name"]}!', 'success')
     return redirect(url_for('index'))
 
-# API endpoints
+# ---------- API: Pages & Posts ----------
 @app.route('/api/me')
 def api_me():
     if 'fb_token' not in session or 'user' not in session:
@@ -219,6 +222,134 @@ def api_page_posts(page_id):
     except:
         pass
     return jsonify({'error': 'Failed to fetch posts'}), 500
+
+# ---------- MEDIA UPLOAD ----------
+def allowed_file(filename):
+    ALLOWED_EXTENSIONS = {'mp4', 'mov', 'avi', 'mkv', 'jpg', 'jpeg', 'png', 'gif', 'webm'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+@app.route('/upload', methods=['POST'])
+@limiter.limit("30 per minute")
+def upload_file():
+    if 'fb_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file provided'}), 400
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No selected file'}), 400
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not allowed'}), 400
+
+    # Secure filename and save
+    original_filename = secure_filename(file.filename)
+    ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'bin'
+    unique_name = f"{uuid.uuid4().hex}.{ext}"
+    save_path = os.path.join(app.config['UPLOAD_FOLDER'], unique_name)
+    file.save(save_path)
+
+    file_size = os.path.getsize(save_path)
+    return jsonify({
+        'success': True,
+        'file': {
+            'name': unique_name,
+            'original_name': original_filename,
+            'size': file_size,
+            'url': f'/media/{unique_name}',
+            'uploaded_at': datetime.utcnow().isoformat()
+        }
+    })
+
+@app.route('/media/<filename>')
+def serve_media(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/api/media', methods=['GET'])
+def list_media():
+    if 'fb_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    files = []
+    for f in os.listdir(app.config['UPLOAD_FOLDER']):
+        path = os.path.join(app.config['UPLOAD_FOLDER'], f)
+        if os.path.isfile(path):
+            files.append({
+                'name': f,
+                'size': os.path.getsize(path),
+                'modified': datetime.fromtimestamp(os.path.getmtime(path)).isoformat()
+            })
+    return jsonify(files)
+
+@app.route('/api/media/<filename>', methods=['DELETE'])
+def delete_media(filename):
+    if 'fb_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    safe_name = secure_filename(filename)
+    path = os.path.join(app.config['UPLOAD_FOLDER'], safe_name)
+    if os.path.exists(path):
+        os.remove(path)
+        return jsonify({'success': True})
+    return jsonify({'error': 'File not found'}), 404
+
+@app.route('/api/media/rename', methods=['POST'])
+def rename_media():
+    if 'fb_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    data = request.json
+    old_name = data.get('old_name')
+    new_name = data.get('new_name')
+    if not old_name or not new_name:
+        return jsonify({'error': 'Invalid parameters'}), 400
+    old_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(old_name))
+    new_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(new_name))
+    if not os.path.exists(old_path):
+        return jsonify({'error': 'File not found'}), 404
+    os.rename(old_path, new_path)
+    return jsonify({'success': True, 'new_name': new_name})
+
+# ---------- FACEBOOK VIDEO PUBLISHING ----------
+@app.route('/api/page/<page_id>/publish/video', methods=['POST'])
+def publish_video(page_id):
+    if 'fb_token' not in session:
+        return jsonify({'error': 'Not authenticated'}), 401
+    pages = session.get('pages', [])
+    page_token = next((p['access_token'] for p in pages if p['id'] == page_id), None)
+    if not page_token:
+        return jsonify({'error': 'Page not found or token missing'}), 404
+
+    data = request.json
+    filename = data.get('filename')
+    caption = data.get('caption', '')
+    scheduled_time = data.get('scheduled_time')  # Unix timestamp (optional)
+
+    if not filename:
+        return jsonify({'error': 'No file specified'}), 400
+
+    file_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(filename))
+    if not os.path.exists(file_path):
+        return jsonify({'error': 'Video file not found on server'}), 404
+
+    # Upload video to Facebook
+    url = f'{GRAPH_URL}/{page_id}/videos'
+    params = {
+        'access_token': page_token,
+        'description': caption,
+    }
+    if scheduled_time:
+        params['scheduled_publish_time'] = int(scheduled_time)
+        params['published'] = 'false'  # scheduled video
+    else:
+        params['published'] = 'true'
+
+    try:
+        with open(file_path, 'rb') as f:
+            files = {'source': (filename, f, 'application/octet-stream')}
+            resp = requests.post(url, params=params, files=files, timeout=60)
+        if resp.status_code == 200:
+            return jsonify({'success': True, 'facebook_video_id': resp.json().get('id')})
+        else:
+            return jsonify({'error': f'Facebook API error: {resp.text}'}), 500
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
