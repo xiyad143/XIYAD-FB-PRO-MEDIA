@@ -1,5 +1,5 @@
 import os, json, requests, datetime, tempfile
-from flask import Flask, request, jsonify, render_template, send_from_directory, session
+from flask import Flask, request, jsonify, render_template, send_from_directory, session, redirect, url_for, flash
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_apscheduler import APScheduler
@@ -18,13 +18,14 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 db = SQLAlchemy(app)
 
-# Scheduler
+# Scheduler configuration
 class SchedulerConfig:
     SCHEDULER_API_ENABLED = True
+    SCHEDULER_TIMEZONE = "UTC"
 app.config.from_object(SchedulerConfig())
+
 scheduler = APScheduler()
 scheduler.init_app(app)
-scheduler.start()
 
 # ---------- Models ----------
 class User(db.Model):
@@ -185,7 +186,8 @@ def schedule_job(post):
         func=execute_scheduled_post,
         args=[post.id],
         trigger='date',
-        run_date=post.scheduled_time
+        run_date=post.scheduled_time,
+        replace_existing=True
     )
     post.job_id = job.id
     db.session.commit()
@@ -210,7 +212,6 @@ def connect_with_token():
         pages = fetch_pages(token)
         user = get_user()
         user.fb_long_lived_token = token  # assume it's already long‑lived
-        # Save pages
         Page.query.delete()
         for p in pages:
             page = Page(
@@ -243,7 +244,7 @@ def facebook_oauth_start():
     user = get_user()
     if not user.fb_app_id or not user.fb_app_secret:
         flash('Save your App ID and Secret first.', 'warning')
-        return redirect('/')
+        return redirect(url_for('index'))
     redirect_uri = request.host_url.rstrip('/') + '/connect/facebook/callback'
     fb_url = (
         f'https://www.facebook.com/v19.0/dialog/oauth?'
@@ -289,9 +290,11 @@ def facebook_oauth_callback():
             )
             db.session.add(page)
         db.session.commit()
-        return redirect('/?connected=true')
+        flash('Successfully connected!', 'success')
+        return redirect(url_for('index'))
     except Exception as e:
-        return str(e), 400
+        flash(str(e), 'danger')
+        return redirect(url_for('index'))
 
 @app.route('/api/me')
 def api_me():
@@ -425,7 +428,6 @@ def publish_now():
             page_id, os.path.join(app.config['UPLOAD_FOLDER'], media.filename),
             title=caption, description='', video_state='PUBLISHED'
         )
-        # Record as published
         post = ScheduledPost(
             page_id=page_id, media_id=media_id, caption=caption,
             scheduled_time=datetime.datetime.utcnow(), status='published'
@@ -480,8 +482,16 @@ def analytics(page_id):
     return jsonify(result)
 
 # ---------- AI Caption & Hashtags ----------
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+
 @app.route('/api/ai-caption', methods=['POST'])
 def ai_caption():
+    if not OPENAI_AVAILABLE:
+        return jsonify({'error': 'OpenAI library not installed'}), 500
     user = get_user()
     if not user.groq_api_key:
         return jsonify({'error': 'Groq API key not set'}), 400
@@ -495,7 +505,6 @@ def ai_caption():
             max_tokens=250
         )
         content = response.choices[0].message.content.strip()
-        # Try to parse JSON; fallback to raw text
         try:
             result = json.loads(content)
             return jsonify(result)
@@ -506,6 +515,8 @@ def ai_caption():
 
 @app.route('/api/ai-hashtags', methods=['POST'])
 def ai_hashtags():
+    if not OPENAI_AVAILABLE:
+        return jsonify({'error': 'OpenAI library not installed'}), 500
     user = get_user()
     if not user.groq_api_key:
         return jsonify({'error': 'Groq API key not set'}), 400
@@ -523,13 +534,13 @@ def ai_hashtags():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-# ---------- Trending Intelligence ----------
 @app.route('/api/trending', methods=['GET'])
 def trending():
+    if not OPENAI_AVAILABLE:
+        return jsonify({'error': 'OpenAI library not installed'}), 500
     user = get_user()
     if not user.groq_api_key:
         return jsonify({'error': 'Groq API key not set'}), 400
-    # Use AI to suggest trending topics (since Facebook doesn't offer a direct trending API)
     client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=user.groq_api_key)
     try:
         response = client.chat.completions.create(
@@ -572,7 +583,12 @@ def settings():
         db.session.commit()
         return jsonify({'success': True})
 
-# ---------- Init DB ----------
+# ---------- Health Check ----------
+@app.route('/health')
+def health():
+    return jsonify({'status': 'ok'})
+
+# ---------- Init DB & Scheduler ----------
 with app.app_context():
     db.create_all()
     # Reschedule pending posts
@@ -580,6 +596,10 @@ with app.app_context():
     for post in pending:
         if post.scheduled_time > datetime.datetime.utcnow():
             schedule_job(post)
+
+    # Start scheduler only if not already running
+    if not scheduler.running:
+        scheduler.start()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
