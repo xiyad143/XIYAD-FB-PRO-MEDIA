@@ -28,9 +28,9 @@ app.config.update(
     SESSION_USE_SIGNER=True,
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_SECURE=False,         # set True with HTTPS
     UPLOAD_FOLDER=os.path.join(os.getcwd(), 'uploads'),
-    MAX_CONTENT_LENGTH=500 * 1024 * 1024  # 500 MB max upload size
+    MAX_CONTENT_LENGTH=500 * 1024 * 1024  # 500 MB
 )
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -46,7 +46,7 @@ limiter = Limiter(
 
 GRAPH_URL = 'https://graph.facebook.com/v19.0'
 
-# ---------- Helpers (same as before) ----------
+# ---------- Helpers ----------
 def fetch_facebook_user(access_token):
     try:
         resp = requests.get(f'{GRAPH_URL}/me', params={
@@ -103,7 +103,7 @@ def exchange_code_for_token(app_id, app_secret, redirect_uri, code):
         pass
     return None
 
-# ---------- Authentication Routes (unchanged) ----------
+# ---------- Auth Routes ----------
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -114,6 +114,7 @@ def logout():
     flash('Logged out.', 'info')
     return redirect(url_for('index'))
 
+# Method 1: Token login
 @app.route('/connect/token', methods=['POST'])
 @limiter.limit("5 per minute")
 def connect_token():
@@ -130,6 +131,7 @@ def connect_token():
     session['login_method'] = 'token'
     return jsonify({'success': True, 'user': user, 'pages_count': len(pages)})
 
+# Method 2: Save App ID + Secret
 @app.route('/connect/app', methods=['POST'])
 @limiter.limit("5 per minute")
 def connect_app():
@@ -141,6 +143,7 @@ def connect_app():
     session['app_secret'] = app_secret
     return jsonify({'success': True})
 
+# Start OAuth
 @app.route('/connect/facebook')
 def facebook_oauth_start():
     if not session.get('app_id') or not session.get('app_secret'):
@@ -150,11 +153,12 @@ def facebook_oauth_start():
     fb_url = (
         f'https://www.facebook.com/v19.0/dialog/oauth?'
         f'client_id={session["app_id"]}&redirect_uri={redirect_uri}'
-        f'&scope=pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata,pages_read_engagement,pages_manage_posts'
+        f'&scope=pages_show_list,pages_read_engagement,pages_manage_posts,pages_manage_metadata'
         f'&response_type=code'
     )
     return redirect(fb_url)
 
+# OAuth callback
 @app.route('/connect/facebook/callback')
 def facebook_oauth_callback():
     code = request.args.get('code')
@@ -241,7 +245,6 @@ def upload_file():
     if not allowed_file(file.filename):
         return jsonify({'error': 'File type not allowed'}), 400
 
-    # Secure filename and save
     original_filename = secure_filename(file.filename)
     ext = original_filename.rsplit('.', 1)[1].lower() if '.' in original_filename else 'bin'
     unique_name = f"{uuid.uuid4().hex}.{ext}"
@@ -319,7 +322,7 @@ def publish_video(page_id):
     data = request.json
     filename = data.get('filename')
     caption = data.get('caption', '')
-    scheduled_time = data.get('scheduled_time')  # Unix timestamp (optional)
+    scheduled_time = data.get('scheduled_time')  # Unix timestamp
 
     if not filename:
         return jsonify({'error': 'No file specified'}), 400
@@ -328,7 +331,6 @@ def publish_video(page_id):
     if not os.path.exists(file_path):
         return jsonify({'error': 'Video file not found on server'}), 404
 
-    # Upload video to Facebook
     url = f'{GRAPH_URL}/{page_id}/videos'
     params = {
         'access_token': page_token,
@@ -336,7 +338,7 @@ def publish_video(page_id):
     }
     if scheduled_time:
         params['scheduled_publish_time'] = int(scheduled_time)
-        params['published'] = 'false'  # scheduled video
+        params['published'] = 'false'
     else:
         params['published'] = 'true'
 
