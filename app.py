@@ -150,11 +150,14 @@ def fetch_pages(token):
     return data.get('data', [])
 
 def fetch_page_insights(page_id, token):
-    metrics = 'page_fans,page_impressions,page_engaged_users,page_video_views,page_fan_adds'
+    metrics = 'page_fans,page_impressions,page_engaged_users'
     url = f"https://graph.facebook.com/v19.0/{page_id}/insights"
     params = {'metric': metrics, 'access_token': token}
-    resp = requests.get(url, params=params)
-    data = resp.json()
+    try:
+        resp = requests.get(url, params=params)
+        data = resp.json()
+    except:
+        return {}
     insights = {}
     if 'data' in data:
         for m in data['data']:
@@ -464,8 +467,10 @@ def page_schedule(page_id):
         if not sched:
             sched = PageSchedule(page_id=page_id)
             db.session.add(sched)
-        sched.post_times = json.dumps(data.get('post_times', []))
-        sched.auto_publish = data.get('auto_publish', False)
+        if data.get('post_times') is not None:
+            sched.post_times = json.dumps(data.get('post_times', []))
+        if data.get('auto_publish') is not None:
+            sched.auto_publish = data.get('auto_publish', False)
         db.session.commit()
         return jsonify(success=True)
 
@@ -548,7 +553,7 @@ def rename_media(media_id):
     db.session.commit()
     return jsonify({'success': True})
 
-# Publish
+# Publish & Schedule
 @app.route('/api/publish-now', methods=['POST'])
 def publish_now():
     data = request.json
@@ -578,16 +583,42 @@ def schedule_post():
     media_id = data.get('media_id')
     caption = data.get('caption', '')
     scheduled_time_str = data.get('scheduled_time')
+
     if not page_id or not media_id or not scheduled_time_str:
         return jsonify({'error': 'Missing fields'}), 400
-    try:
-        scheduled_time = datetime.datetime.fromisoformat(scheduled_time_str)
-        if scheduled_time <= datetime.datetime.utcnow():
-            return jsonify({'error': 'Must be in the future'}), 400
-    except:
-        return jsonify({'error': 'Invalid datetime'}), 400
+
+    # Robust datetime parsing
+    parsed_time = None
+    formats_to_try = [
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%dT%H:%M',
+        '%Y-%m-%dT%H:%M:%S.%f'
+    ]
+    for fmt in formats_to_try:
+        try:
+            parsed_time = datetime.datetime.strptime(scheduled_time_str, fmt)
+            break
+        except ValueError:
+            continue
+
+    if parsed_time is None:
+        try:
+            parsed_time = datetime.datetime.fromisoformat(scheduled_time_str)
+        except:
+            pass
+
+    if parsed_time is None:
+        return jsonify({'error': 'Invalid datetime format'}), 400
+
+    now_utc = datetime.datetime.utcnow()
+    if parsed_time.tzinfo is not None:
+        parsed_time = parsed_time.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+
+    if parsed_time <= now_utc:
+        return jsonify({'error': 'Scheduled time must be in the future'}), 400
+
     post = ScheduledPost(page_id=page_id, media_id=media_id, caption=caption,
-                         scheduled_time=scheduled_time, status='pending')
+                         scheduled_time=parsed_time, status='pending')
     db.session.add(post)
     db.session.commit()
     schedule_job(post)
@@ -676,25 +707,34 @@ def analytics(page_id):
     token = get_page_token(page_id)
     if not token:
         return jsonify({'error': 'No token'}), 400
-    metrics = 'page_fans,page_impressions,page_engaged_users,page_video_views,page_fan_adds'
-    url = f"https://graph.facebook.com/v19.0/{page_id}/insights"
-    params = {'metric': metrics, 'access_token': token, 'period': 'days_28'}
-    resp = requests.get(url, params=params)
-    data = resp.json()
-    if 'error' in data:
-        return jsonify({'error': data['error']['message']}), 400
-    result = {}
-    for m in data.get('data', []):
-        result[m['name']] = [{'date': v.get('end_time',''), 'value': v.get('value',0)} for v in m['values']]
-    return jsonify(result)
+    try:
+        resp = requests.get(
+            f"https://graph.facebook.com/v19.0/{page_id}/insights",
+            params={
+                'metric': 'page_fans,page_impressions,page_engaged_users',
+                'access_token': token,
+                'period': 'days_28'
+            }
+        )
+        data = resp.json()
+        if 'error' in data:
+            return jsonify({})
+        result = {}
+        for m in data.get('data', []):
+            result[m['name']] = [
+                {'date': v.get('end_time',''), 'value': v.get('value',0)}
+                for v in m['values']
+            ]
+        return jsonify(result)
+    except:
+        return jsonify({})
 
-# Notifications
+# Notifications & Logs
 @app.route('/api/notifications')
 def get_notifications():
     notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
     return jsonify([{'id': n.id, 'message': n.message, 'timestamp': n.timestamp.isoformat(), 'read': n.read} for n in notifs])
 
-# Logs
 @app.route('/api/logs')
 def get_logs():
     logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(50).all()
@@ -734,10 +774,8 @@ with app.app_context():
     for post in pending:
         if post.scheduled_time > datetime.datetime.utcnow():
             schedule_job(post)
-    # Start scheduler
     if not scheduler.running:
         scheduler.start()
-    # Auto-publisher every minute
     scheduler.add_job(
         id='auto_publisher',
         func=auto_publisher,
