@@ -2,811 +2,745 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XIYAD Social Manager – Facebook Reels Automation SaaS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>XIYAD – Facebook Reels Automation</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+
     <style>
         :root {
-            --sidebar-width: 260px;
-            --primary: #1877f2;
-            --sidebar-bg: #1a1d23;
-            --card-bg: #ffffff;
-            --text-main: #1c1e21;
-            --border-color: #e4e6eb;
+            --primary: #6C5CE7;
+            --primary-gradient: linear-gradient(135deg, #6C5CE7, #a855f7);
+            --sidebar-bg-light: #ffffff;
+            --sidebar-bg-dark: #1e1f23;
+            --card-bg-light: #ffffff;
+            --card-bg-dark: #2b2d31;
+            --text-light: #1c1e21;
+            --text-dark: #e4e6eb;
+            --text-secondary-light: #65676b;
+            --text-secondary-dark: #b0b3b8;
+            --bg-light: #f4f6fc;
+            --bg-dark: #121316;
+            --border-light: rgba(0,0,0,0.08);
+            --border-dark: rgba(255,255,255,0.08);
+            --shadow-light: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-dark: 0 4px 12px rgba(0,0,0,0.4);
+            --animation-speed: 0.25s;
         }
-        [data-theme="light"] { --sidebar-bg: #ffffff; }
-        [data-theme="dark"] { --sidebar-bg: #1a1d23; --card-bg: #242526; --text-main: #e4e6eb; --border-color: #3a3b3c; }
-        body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; margin: 0; color: var(--text-main); overflow-x: hidden; }
-        #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f0f2f5; }
-        #login-screen .card { border-radius: 12px; border: none; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
-        .sidebar { position: fixed; top: 0; left: 0; width: var(--sidebar-width); height: 100vh; background: var(--sidebar-bg); color: #ccc; z-index: 1000; overflow-y: auto; transition: transform 0.3s; display: flex; flex-direction: column; }
-        .sidebar .logo { padding: 20px 18px; font-size: 1.35rem; font-weight: 700; color: #1877f2; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 10px; }
-        .sidebar .nav-menu { list-style: none; padding: 10px 0; margin: 0; flex: 1; }
-        .sidebar .nav-menu li a { display: flex; align-items: center; gap: 10px; padding: 11px 18px; color: #b0b3b8; text-decoration: none; font-size: 0.9rem; border-left: 3px solid transparent; cursor: pointer; }
-        .sidebar .nav-menu li a:hover, .sidebar .nav-menu li a.active { background: #262932; color: #fff; border-left-color: var(--primary); }
-        .sidebar .nav-section { padding: 8px 18px 4px; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; color: #65676b; font-weight: 600; }
-        .main-content { margin-left: var(--sidebar-width); min-height: 100vh; background: #f0f2f5; }
-        .topbar { background: var(--card-bg); padding: 14px 24px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 500; }
-        .dashboard-section { display: none; padding: 20px 24px; } .dashboard-section.active { display: block; }
-        .stat-card { background: var(--card-bg); border-radius: 10px; padding: 18px 20px; border: 1px solid var(--border-color); transition: box-shadow 0.2s; cursor: default; }
-        .stat-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
-        .upload-area { background: var(--card-bg); border: 2px dashed #ccc; border-radius: 12px; padding: 40px; text-align: center; cursor: pointer; transition: border-color 0.2s; }
-        .upload-area:hover, .upload-area.dragover { border-color: var(--primary); background: #f8fbff; }
-        .media-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 12px; transition: box-shadow 0.2s; }
-        .media-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .theme-toggle { cursor: pointer; font-size: 1.2rem; color: #65676b; }
-        @media (max-width: 768px) { .sidebar { transform: translateX(-100%); } .sidebar.open { transform: translateX(0); } .main-content { margin-left: 0; } .menu-toggle { display: block !important; } }
-        .menu-toggle { display: none; font-size: 1.4rem; cursor: pointer; background: none; border: none; color: var(--text-main); }
+
+        * { transition: background-color var(--animation-speed), border-color var(--animation-speed), color var(--animation-speed); }
+
+        body.light {
+            --bg: var(--bg-light);
+            --card-bg: var(--card-bg-light);
+            --text: var(--text-light);
+            --text-secondary: var(--text-secondary-light);
+            --border: var(--border-light);
+            --shadow: var(--shadow-light);
+            --sidebar-bg: var(--sidebar-bg-light);
+            --topbar-bg: rgba(255,255,255,0.9);
+        }
+        body.dark {
+            --bg: var(--bg-dark);
+            --card-bg: var(--card-bg-dark);
+            --text: var(--text-dark);
+            --text-secondary: var(--text-secondary-dark);
+            --border: var(--border-dark);
+            --shadow: var(--shadow-dark);
+            --sidebar-bg: var(--sidebar-bg-dark);
+            --topbar-bg: rgba(30,31,35,0.9);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            overflow-x: hidden;
+        }
+        #login-screen {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            backdrop-filter: blur(10px);
+        }
+        .login-card {
+            background: var(--card-bg);
+            border-radius: 24px;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: var(--shadow), 0 20px 40px rgba(0,0,0,0.15);
+            border: 1px solid var(--border);
+            animation: fadeUp 0.5s ease;
+        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+        .sidebar {
+            position: fixed;
+            top: 0; left: 0;
+            width: 270px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            z-index: 1000;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .sidebar .logo {
+            padding: 24px 20px;
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar .logo i { -webkit-text-fill-color: #6C5CE7; }
+        .sidebar .nav-menu { list-style: none; padding: 16px 0; margin: 0; flex: 1; }
+        .sidebar .nav-menu li a {
+            display: flex; align-items: center; gap: 12px;
+            padding: 13px 20px; color: var(--text); text-decoration: none;
+            font-size: 0.95rem; font-weight: 500; margin: 2px 10px;
+            border-radius: 12px; transition: background 0.2s, transform 0.2s;
+        }
+        .sidebar .nav-menu li a:hover { background: rgba(108,92,231,0.08); transform: translateX(4px); }
+        .sidebar .nav-menu li a.active { background: var(--primary-gradient); color: #fff; font-weight: 600; box-shadow: 0 4px 12px rgba(108,92,231,0.3); }
+        .sidebar .nav-section {
+            padding: 20px 20px 6px; font-size: 0.7rem; text-transform: uppercase;
+            letter-spacing: 1.5px; color: var(--text-secondary); font-weight: 700;
+        }
+        .sidebar .user-section {
+            padding: 16px 20px; border-top: 1px solid var(--border);
+            display: flex; align-items: center; gap: 10px;
+        }
+        .sidebar .user-section img { width: 40px; height: 40px; border-radius: 50%; }
+        .sidebar .user-section strong { color: var(--text); font-size: 0.9rem; }
+        .main-content {
+            margin-left: 270px;
+            min-height: 100vh;
+            background: var(--bg);
+        }
+        .topbar {
+            background: var(--topbar-bg);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 500;
+        }
+        .topbar .page-title { font-size: 1.2rem; font-weight: 600; color: var(--text); }
+        .dashboard-section { display: none; padding: 24px; }
+        .dashboard-section.active { display: block; animation: fadeSection 0.3s ease; }
+        @keyframes fadeSection { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .stat-card {
+            background: var(--card-bg);
+            border-radius: 18px;
+            padding: 20px 18px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(108,92,231,0.15); }
+        .stat-value { font-size: 2rem; font-weight: 700; background: var(--primary-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn-primary {
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 14px;
+            padding: 10px 24px;
+            font-weight: 600;
+            transition: all 0.2s;
+            box-shadow: 0 4px 12px rgba(108,92,231,0.3);
+        }
+        .btn-primary:hover { transform: scale(1.03); box-shadow: 0 6px 18px rgba(108,92,231,0.4); }
+        .btn-glass {
+            background: rgba(108,92,231,0.1);
+            border: 1px solid rgba(108,92,231,0.2);
+            color: var(--primary);
+            border-radius: 14px;
+            transition: all 0.2s;
+        }
+        .btn-glass:hover { background: rgba(108,92,231,0.2); color: #fff; }
+        .form-control, .form-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 12px;
+        }
+        .form-control:focus { box-shadow: 0 0 0 3px rgba(108,92,231,0.2); border-color: #6C5CE7; }
+        .toggle-theme-btn {
+            cursor: pointer; font-size: 1.3rem; color: var(--text-secondary);
+            width: 38px; height: 38px; display: flex; align-items: center;
+            justify-content: center; border-radius: 50%; transition: background 0.2s, transform 0.2s;
+        }
+        .toggle-theme-btn:hover { background: var(--border); transform: rotate(15deg); }
+        .menu-toggle { display: none; background: none; border: none; font-size: 1.4rem; color: var(--text); cursor: pointer; }
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+            .menu-toggle { display: block; }
+            .dashboard-section { padding: 16px; }
+            .stat-card { padding: 16px; }
+        }
+        .toggle-switch { position: relative; display: inline-block; width: 48px; height: 26px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: var(--primary-gradient); }
+        input:checked + .slider:before { transform: translateX(22px); }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(108,92,231,0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(108,92,231,0); }
+            100% { box-shadow: 0 0 0 0 rgba(108,92,231,0); }
+        }
+        .btn-pulse { animation: pulse 2s infinite; }
     </style>
 </head>
-<body data-theme="light">
-    <!-- ========== LOGIN SCREEN ========== -->
-    <div id="login-screen">
-        <div class="card p-4" style="width:100%;max-width:500px;">
-            <h3 class="text-center mb-3"><i class="fa-brands fa-meta"></i> XIYAD Connection</h3>
-            <div class="mb-3">
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="connMethod" id="method-token" value="token" checked>
-                    <label class="form-check-label" for="method-token">Access Token Login</label>
-                </div>
-                <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="connMethod" id="method-app" value="app">
-                    <label class="form-check-label" for="method-app">App ID + App Secret Login</label>
-                </div>
+<body class="light">
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+    <div class="login-card">
+        <h3 class="text-center mb-3" style="color:var(--primary)"><i class="fa-brands fa-meta"></i> XIYAD</h3>
+        <div class="mb-3">
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="connMethod" id="method-token" value="token" checked>
+                <label class="form-check-label" for="method-token">Access Token</label>
             </div>
-            <div id="panel-token">
-                <div class="mb-3"><label class="form-label">Long‑Lived Access Token</label><input type="text" class="form-control" id="token-input" placeholder="Paste your Facebook token"></div>
-                <button class="btn btn-primary w-100" id="btn-token-connect"><i class="fa-brands fa-facebook-f me-2"></i> Connect</button>
-                <div class="text-danger small mt-2" id="token-error"></div>
-            </div>
-            <div id="panel-app" style="display:none;">
-                <div class="mb-3"><label class="form-label">App ID</label><input type="text" class="form-control" id="app-id-input" placeholder="Your Facebook App ID"></div>
-                <div class="mb-3"><label class="form-label">App Secret</label><input type="text" class="form-control" id="app-secret-input" placeholder="Your Facebook App Secret"></div>
-                <button class="btn btn-outline-secondary w-100 mb-2" id="btn-save-app"><i class="fas fa-save me-2"></i> Save App</button>
-                <button class="btn btn-primary w-100" id="btn-oauth-connect" disabled><i class="fa-brands fa-facebook-f me-2"></i> Connect With Facebook</button>
-                <div class="text-danger small mt-2" id="app-error"></div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="connMethod" id="method-app" value="app">
+                <label class="form-check-label" for="method-app">App ID + Secret</label>
             </div>
         </div>
+        <div id="panel-token">
+            <div class="mb-3"><input type="text" class="form-control" id="token-input" placeholder="Long‑lived token"></div>
+            <button class="btn btn-primary w-100" id="btn-token-connect"><i class="fa-brands fa-facebook-f me-2"></i> Connect</button>
+            <div class="text-danger small mt-2" id="token-error"></div>
+        </div>
+        <div id="panel-app" style="display:none;">
+            <div class="mb-3"><input type="text" class="form-control" id="app-id-input" placeholder="App ID"></div>
+            <div class="mb-3"><input type="password" class="form-control" id="app-secret-input" placeholder="App Secret"></div>
+            <button class="btn btn-outline-secondary w-100 mb-2" id="btn-save-app"><i class="fas fa-save me-2"></i> Save App</button>
+            <button class="btn btn-primary w-100" id="btn-oauth-connect" disabled><i class="fa-brands fa-facebook-f me-2"></i> Connect With Facebook</button>
+            <div class="text-danger small mt-2" id="app-error"></div>
+        </div>
     </div>
+</div>
 
-    <!-- ========== DASHBOARD SCREEN ========== -->
-    <div id="dashboard-screen" style="display:none;">
-        <!-- Sidebar -->
-        <aside class="sidebar" id="sidebar">
-            <div class="logo"><i class="fa-brands fa-meta"></i> XIYAD</div>
-            <ul class="nav-menu">
-                <li class="nav-section">MAIN</li>
-                <li><a class="active" data-section="dashboard"><i class="fas fa-th-large"></i> Dashboard</a></li>
-                <li><a data-section="accounts"><i class="fas fa-user-circle"></i> Accounts</a></li>
-                <li><a data-section="pages"><i class="fa-brands fa-facebook"></i> Pages</a></li>
-                <li class="nav-section">AUTOMATION</li>
-                <li><a data-section="workflows"><i class="fas fa-play-circle"></i> Workflows</a></li>
-                <li><a data-section="calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
-                <li class="nav-section">CONTENT</li>
-                <li><a data-section="upload"><i class="fas fa-cloud-upload-alt"></i> Upload Center</a></li>
-                <li><a data-section="library"><i class="fas fa-photo-film"></i> Media Library</a></li>
-                <li class="nav-section">INSIGHTS</li>
-                <li><a data-section="analytics"><i class="fas fa-chart-bar"></i> Analytics</a></li>
-                <li class="nav-section">SYSTEM</li>
-                <li><a data-section="notifications"><i class="fas fa-bell"></i> Notifications</a></li>
-                <li><a data-section="settings"><i class="fas fa-gear"></i> Settings</a></li>
-                <li><a onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+<!-- DASHBOARD -->
+<div id="dashboard-screen" style="display:none;">
+    <aside class="sidebar" id="sidebar">
+        <div class="logo"><i class="fa-brands fa-meta"></i> XIYAD</div>
+        <ul class="nav-menu">
+            <li class="nav-section">MAIN</li>
+            <li><a class="active" data-section="dashboard"><i class="fas fa-chart-pie"></i> Dashboard</a></li>
+            <li><a data-section="accounts"><i class="fas fa-user-circle"></i> Accounts</a></li>
+            <li><a data-section="pages"><i class="fa-brands fa-facebook"></i> Pages</a></li>
+            <li class="nav-section">AUTOMATION</li>
+            <li><a data-section="workflows"><i class="fas fa-play-circle"></i> Workflows</a></li>
+            <li><a data-section="calendar"><i class="fas fa-calendar-alt"></i> Calendar</a></li>
+            <li class="nav-section">CONTENT</li>
+            <li><a data-section="upload"><i class="fas fa-cloud-upload-alt"></i> Upload Center</a></li>
+            <li><a data-section="library"><i class="fas fa-photo-film"></i> Media Library</a></li>
+            <li class="nav-section">INSIGHTS</li>
+            <li><a data-section="analytics"><i class="fas fa-chart-bar"></i> Analytics</a></li>
+            <li class="nav-section">SYSTEM</li>
+            <li><a data-section="settings"><i class="fas fa-gear"></i> Settings</a></li>
+            <li><a onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+        </ul>
+        <div class="user-section">
+            <img id="sidebar-avatar" src="" alt="">
+            <div>
+                <strong id="sidebar-user-name">User</strong><br>
+                <small style="color:var(--text-secondary);">Pro Plan</small>
+            </div>
+        </div>
+    </aside>
+
+    <div class="main-content">
+        <div class="topbar">
+            <button class="menu-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+            <h5 class="page-title" id="pageTitle">📊 Dashboard</h5>
+            <div class="d-flex align-items-center gap-3">
+                <div class="toggle-theme-btn" onclick="toggleTheme()" title="Toggle theme">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </div>
+                <span id="currentDate" style="color:var(--text-secondary);font-size:0.9rem;"></span>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div class="dashboard-section active" id="section-dashboard">
+            <div class="row g-3 mb-4">
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-pages">0</div><small style="color:var(--text-secondary)">Pages</small></div></div>
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-scheduled">0</div><small style="color:var(--text-secondary)">Scheduled</small></div></div>
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-published">0</div><small style="color:var(--text-secondary)">Published</small></div></div>
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-failed">0</div><small style="color:var(--text-secondary)">Failed</small></div></div>
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-followers">0</div><small style="color:var(--text-secondary)">Followers</small></div></div>
+                <div class="col-6 col-md-2"><div class="stat-card"><div class="stat-value" id="stat-reach">0</div><small style="color:var(--text-secondary)">Reach</small></div></div>
+            </div>
+            <div class="row g-3">
+                <div class="col-lg-8"><div class="stat-card"><canvas id="dashboard-chart" height="250"></canvas></div></div>
+                <div class="col-lg-4"><div class="stat-card"><h6>Recent Activity</h6><div id="recent-activity"></div></div></div>
+            </div>
+        </div>
+
+        <!-- ACCOUNTS -->
+        <div class="dashboard-section" id="section-accounts">
+            <h5>Connected Accounts</h5>
+            <div id="accounts-list" class="row g-3"></div>
+        </div>
+
+        <!-- PAGES -->
+        <div class="dashboard-section" id="section-pages">
+            <h5>Connected Pages</h5>
+            <button class="btn btn-glass mb-3" onclick="updatePageInsights()"><i class="fas fa-sync-alt me-1"></i> Refresh Insights</button>
+            <div id="pages-list" class="row g-3"></div>
+        </div>
+
+        <!-- WORKFLOWS -->
+        <div class="dashboard-section" id="section-workflows">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>Automation Workflows</h5>
+                <button class="btn btn-primary btn-pulse" id="btn-start-all" onclick="startAllAutomation()"><i class="fas fa-play me-1"></i> Start All Automation</button>
+            </div>
+            <div id="workflow-cards" class="row g-3"></div>
+        </div>
+
+        <!-- CALENDAR -->
+        <div class="dashboard-section" id="section-calendar">
+            <div class="stat-card"><div id="calendar"></div></div>
+        </div>
+
+        <!-- UPLOAD CENTER -->
+        <div class="dashboard-section" id="section-upload">
+            <div class="row g-3">
+                <div class="col-lg-8">
+                    <div class="stat-card" id="drop-zone" style="text-align:center; cursor:pointer; border: 2px dashed var(--border);">
+                        <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color:var(--primary);"></i>
+                        <h5>Drag & Drop or click to browse</h5>
+                        <p class="text-secondary small">Videos, photos, and folders</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('file-input').click()">Select Files</button>
+                        <button class="btn btn-outline-secondary ms-2" onclick="document.getElementById('folder-input').click()">Select Folder</button>
+                        <input type="file" id="file-input" multiple hidden accept="video/*,image/*">
+                        <input type="file" id="folder-input" webkitdirectory hidden>
+                    </div>
+                    <div class="mt-3" id="upload-summary" style="display:none;">
+                        <div class="d-flex justify-content-between small"><span id="upload-progress-text">0/0 files</span><span id="upload-speed">0 MB/s</span></div>
+                        <div class="progress" style="height:6px;"><div class="progress-bar" style="background:var(--primary-gradient);" id="overall-progress-bar" style="width:0%"></div></div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="stat-card" style="max-height:300px;overflow-y:auto;">
+                        <h6>Upload Queue</h6>
+                        <div id="queue-list" class="text-muted small">No active uploads</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MEDIA LIBRARY -->
+        <div class="dashboard-section" id="section-library">
+            <h5>Media Library</h5>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                <select class="form-select form-select-sm w-auto" id="folder-filter" onchange="loadMediaLibrary()"><option value="">All Folders</option></select>
+                <select class="form-select form-select-sm w-auto" id="type-filter" onchange="loadMediaLibrary()"><option value="">All Types</option><option value="video">Videos</option><option value="photo">Photos</option></select>
+                <button class="btn btn-sm btn-glass" onclick="toggleView('grid')"><i class="fas fa-th"></i></button>
+                <button class="btn btn-sm btn-glass" onclick="toggleView('list')"><i class="fas fa-list"></i></button>
+            </div>
+            <div id="media-grid" class="row g-3"></div>
+        </div>
+
+        <!-- ANALYTICS -->
+        <div class="dashboard-section" id="section-analytics">
+            <ul class="nav nav-tabs mb-3" id="analyticsTabs">
+                <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-overview">Overview</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-followers">Followers</a></li>
+                <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-engagement">Engagement</a></li>
             </ul>
-            <div class="user-info p-3 border-top border-secondary">
-                <div class="d-flex align-items-center gap-2">
-                    <img id="sidebar-avatar" src="" width="32" height="32" class="rounded-circle">
-                    <div>
-                        <strong style="color:#fff;" id="sidebar-user-name">User</strong><br>
-                        <small style="color:#888;">Pro Plan</small>
-                    </div>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <div class="main-content">
-            <div class="topbar">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
-                <h5 class="page-title" id="pageTitle">📊 Dashboard</h5>
-                <div class="d-flex align-items-center gap-3">
-                    <span class="theme-toggle" onclick="toggleTheme()"><i class="fas fa-moon"></i></span>
-                    <span class="badge-notify" onclick="showSection('notifications')"><i class="fas fa-bell"></i><span class="count bg-danger text-white rounded-pill px-1" style="font-size:0.65rem;position:absolute;margin-top:-8px;" id="notif-count">0</span></span>
-                    <span id="currentDate"></span>
-                </div>
-            </div>
-
-            <!-- ===== DASHBOARD ===== -->
-            <div class="dashboard-section active" id="section-dashboard">
-                <div class="row g-3 mb-3">
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-pages">0</h5><small>Pages Connected</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-active-workflows">0</h5><small>Active Workflows</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-scheduled">0</h5><small>Scheduled Posts</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-pending-queue">0</h5><small>Pending Queue</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-published">0</h5><small>Videos Posted</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-followers">0</h5><small>Followers Gained</small></div></div>
-                    <div class="col-md-2"><div class="stat-card"><h5 id="stat-failed">0</h5><small>Failed Uploads</small></div></div>
-                </div>
-                <div class="row g-3">
-                    <div class="col-md-8"><div class="card p-3" id="recent-posts"></div></div>
-                    <div class="col-md-4"><div class="card p-3" id="activity-feed"></div></div>
-                </div>
-            </div>
-
-            <!-- ===== ACCOUNTS ===== -->
-            <div class="dashboard-section" id="section-accounts">
-                <h5>Connected Accounts</h5>
-                <div id="accounts-list" class="row g-3"></div>
-            </div>
-
-            <!-- ===== PAGES ===== -->
-            <div class="dashboard-section" id="section-pages">
-                <h5>Connected Pages</h5>
-                <button class="btn btn-sm btn-primary mb-3" onclick="updatePageInsights()">Refresh Insights</button>
-                <div id="pages-list" class="row g-3"></div>
-            </div>
-
-            <!-- ===== WORKFLOWS ===== -->
-            <div class="dashboard-section" id="section-workflows">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="card p-3">
-                            <h6>Posting Strategy</h6>
-                            <div class="mb-2">
-                                <input type="radio" name="strategy" id="strategy-everyday" checked> <label for="strategy-everyday">Everyday</label>
-                                <input type="radio" name="strategy" id="strategy-custom"> <label for="strategy-custom">Custom Days</label>
-                                <input type="radio" name="strategy" id="strategy-random"> <label for="strategy-random">Random Days</label>
-                                <input type="radio" name="strategy" id="strategy-ai"> <label for="strategy-ai">Smart AI Schedule</label>
-                            </div>
-                            <div class="mb-3"><label>Target Timezone</label><select class="form-select"><option>Asia/Dhaka</option><option>UTC</option></select></div>
-                            <div><label>Posting Times</label><div id="posting-times" class="mb-2"></div><button class="btn btn-sm btn-outline-primary" onclick="addTimeField()">+ Add Time</button></div>
-                            <hr>
-                            <h6>Advanced Options</h6>
-                            <div class="mb-2"><label>Minimum Gap Between Posts</label><select class="form-select"><option>2 Hours</option><option>1 Hour</option></select></div>
-                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="random-delay"><label class="form-check-label" for="random-delay">Random Delay</label></div>
-                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="avoid-night"><label class="form-check-label" for="avoid-night">Avoid Night Posting</label></div>
-                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="auto-reschedule"><label class="form-check-label" for="auto-reschedule">Auto Reschedule Failed Posts</label></div>
-                            <button class="btn btn-primary mt-3" onclick="saveWorkflowSettings()">Save Workflow</button>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card p-3"><h6>Workflow Status</h6><p id="workflow-status">No active workflow</p></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== CALENDAR ===== -->
-            <div class="dashboard-section" id="section-calendar">
-                <div class="card p-3">
-                    <div id="calendar"></div>
-                </div>
-            </div>
-
-            <!-- ===== UPLOAD CENTER ===== -->
-            <div class="dashboard-section" id="section-upload">
-                <div class="row g-3">
-                    <div class="col-lg-9">
-                        <div class="upload-area" id="drop-zone">
-                            <i class="fas fa-cloud-upload-alt fa-3x mb-3" style="color:#1877f2;"></i>
-                            <h5>Drag & Drop files here</h5>
-                            <p class="text-muted">or</p>
-                            <div class="d-flex justify-content-center gap-2">
-                                <button class="btn btn-primary" onclick="document.getElementById('file-input').click()"><i class="fas fa-file"></i> Select Files</button>
-                                <button class="btn btn-outline-primary" onclick="document.getElementById('folder-input').click()"><i class="fas fa-folder"></i> Select Folder</button>
-                            </div>
-                            <input type="file" id="file-input" multiple hidden accept="video/*,image/*">
-                            <input type="file" id="folder-input" webkitdirectory hidden>
-                        </div>
-                        <div class="mt-3" id="upload-summary" style="display:none;">
-                            <div class="d-flex justify-content-between">
-                                <span id="upload-progress-text">Uploading 0 of 0 files</span>
-                                <span id="upload-speed">0 MB/s</span>
-                            </div>
-                            <div class="progress mt-1" style="height:6px;"><div class="progress-bar bg-primary" id="overall-progress-bar" style="width:0%"></div></div>
-                        </div>
-                    </div>
-                    <div class="col-lg-3">
-                        <div class="upload-queue-panel"><h6>Upload Queue</h6><div id="queue-list"></div></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ===== MEDIA LIBRARY ===== -->
-            <div class="dashboard-section" id="section-library">
-                <h5>Media Library</h5>
-                <div class="d-flex gap-2 mb-3">
-                    <select class="form-select w-auto" id="folder-filter" onchange="loadMediaLibrary()"><option value="">All Folders</option></select>
-                    <select class="form-select w-auto" id="type-filter" onchange="loadMediaLibrary()"><option value="">All Types</option><option value="video">Videos</option><option value="photo">Photos</option></select>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleView('grid')"><i class="fas fa-th"></i></button>
-                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleView('list')"><i class="fas fa-list"></i></button>
-                </div>
-                <div id="media-grid" class="row g-3"></div>
-            </div>
-
-            <!-- ===== ANALYTICS ===== -->
-            <div class="dashboard-section" id="section-analytics">
-                <ul class="nav nav-tabs" id="analyticsTabs">
-                    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-overview">Overview</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-followers">Followers</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-posts">Posts</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-engagement">Engagement</a></li>
-                    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-reach">Reach</a></li>
-                </ul>
-                <div class="tab-content mt-3">
-                    <div class="tab-pane fade show active" id="tab-overview"><canvas id="chart-overview" height="200"></canvas></div>
-                    <div class="tab-pane fade" id="tab-followers"><canvas id="chart-followers" height="200"></canvas></div>
-                    <div class="tab-pane fade" id="tab-posts"><canvas id="chart-posts" height="200"></canvas></div>
-                    <div class="tab-pane fade" id="tab-engagement"><canvas id="chart-engagement" height="200"></canvas></div>
-                    <div class="tab-pane fade" id="tab-reach"><canvas id="chart-reach" height="200"></canvas></div>
-                </div>
-            </div>
-
-            <!-- ===== NOTIFICATIONS ===== -->
-            <div class="dashboard-section" id="section-notifications">
-                <h5>Notifications</h5>
-                <div id="notif-list"></div>
-            </div>
-
-            <!-- ===== SETTINGS ===== -->
-            <div class="dashboard-section" id="section-settings">
-                <h5>Settings</h5>
-                <form id="settings-form" class="row g-3">
-                    <div class="col-md-6"><label>Facebook App ID</label><input type="text" class="form-control" id="set-fb-app-id"></div>
-                    <div class="col-md-6"><label>Facebook App Secret</label><input type="text" class="form-control" id="set-fb-app-secret"></div>
-                    <div class="col-md-6"><label>Groq API Key</label><input type="text" class="form-control" id="set-groq-key"></div>
-                    <div class="col-md-6"><label>Timezone</label><input type="text" class="form-control" id="set-timezone" value="UTC"></div>
-                    <hr><h6>Developer Info</h6>
-                    <div class="col-md-6"><label>Name</label><input type="text" class="form-control" id="set-dev-name"></div>
-                    <div class="col-md-6"><label>Email</label><input type="email" class="form-control" id="set-dev-email"></div>
-                    <div class="col-md-6"><label>Phone</label><input type="text" class="form-control" id="set-dev-phone"></div>
-                    <div class="col-md-6"><label>Facebook</label><input type="text" class="form-control" id="set-dev-fb"></div>
-                    <div class="col-md-6"><label>WhatsApp</label><input type="text" class="form-control" id="set-dev-wa"></div>
-                    <div class="col-md-6"><label>Telegram</label><input type="text" class="form-control" id="set-dev-tg"></div>
-                    <div class="col-md-6"><label>Website</label><input type="text" class="form-control" id="set-dev-web"></div>
-                    <div class="col-12"><button type="submit" class="btn btn-primary">Save Settings</button></div>
-                </form>
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="tab-overview"><canvas id="chart-overview" height="200"></canvas></div>
+                <div class="tab-pane fade" id="tab-followers"><canvas id="chart-followers" height="200"></canvas></div>
+                <div class="tab-pane fade" id="tab-engagement"><canvas id="chart-engagement" height="200"></canvas></div>
             </div>
         </div>
+
+        <!-- SETTINGS -->
+        <div class="dashboard-section" id="section-settings">
+            <h5>Settings</h5>
+            <form id="settings-form" class="row g-3">
+                <div class="col-md-6"><label class="form-label">FB App ID</label><input type="text" class="form-control" id="set-fb-app-id"></div>
+                <div class="col-md-6"><label class="form-label">FB App Secret</label><input type="password" class="form-control" id="set-fb-app-secret"></div>
+                <div class="col-md-6"><label class="form-label">Groq API Key</label><input type="text" class="form-control" id="set-groq-key"></div>
+                <div class="col-md-6"><label class="form-label">Timezone</label><input type="text" class="form-control" id="set-timezone" value="UTC"></div>
+                <hr><h6>Developer Info</h6>
+                <div class="col-md-6"><input type="text" class="form-control" id="set-dev-name" placeholder="Name"></div>
+                <div class="col-md-6"><input type="email" class="form-control" id="set-dev-email" placeholder="Email"></div>
+                <div class="col-12"><button type="submit" class="btn btn-primary">Save Settings</button></div>
+            </form>
+        </div>
     </div>
+</div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // ---------- GLOBAL STATE ----------
-        let currentUser = null;
-        let uploadQueue = [];
-        let activeUploads = 0;
-        const MAX_CONCURRENT = 2;
-        let startTime, totalUploaded;
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ---------- THEME ----------
+    function setTheme(theme) {
+        document.body.classList.remove('light','dark');
+        document.body.classList.add(theme);
+        localStorage.setItem('xiyad-theme', theme);
+        document.getElementById('theme-icon').className = theme==='dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+    function toggleTheme() {
+        const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+        setTheme(next);
+    }
+    (() => {
+        const saved = localStorage.getItem('xiyad-theme');
+        if (saved) setTheme(saved);
+        else if (window.matchMedia('(prefers-color-scheme: dark)').matches) setTheme('dark');
+        else setTheme('light');
+    })();
 
-        // Theme toggle
-        function toggleTheme() {
-            const body = document.body;
-            const current = body.getAttribute('data-theme');
-            const next = current === 'light' ? 'dark' : 'light';
-            body.setAttribute('data-theme', next);
-            const icon = document.querySelector('.theme-toggle i');
-            icon.className = next === 'light' ? 'fas fa-moon' : 'fas fa-sun';
-        }
+    // ---------- GLOBALS ----------
+    let currentUser = null;
+    let pages = [];
+    let uploadQueue = [];
+    let activeUploads = 0;
+    const MAX_CONCURRENT = 2;
 
-        // Auth UI
-        document.querySelectorAll('input[name="connMethod"]').forEach(r => {
-            r.addEventListener('change', () => {
-                document.getElementById('panel-token').style.display = r.value === 'token' ? 'block' : 'none';
-                document.getElementById('panel-app').style.display = r.value === 'app' ? 'block' : 'none';
+    // Auth
+    document.querySelectorAll('input[name="connMethod"]').forEach(r => r.addEventListener('change', () => {
+        document.getElementById('panel-token').style.display = r.value==='token'?'block':'none';
+        document.getElementById('panel-app').style.display = r.value==='app'?'block':'none';
+    }));
+
+    document.getElementById('btn-token-connect').addEventListener('click', async () => {
+        const token = document.getElementById('token-input').value.trim();
+        const err = document.getElementById('token-error'); err.textContent = '';
+        if (!token) { err.textContent='Token required'; return; }
+        try {
+            const res = await fetch('/api/connect/token', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({token}) });
+            const data = await res.json();
+            if (data.success) showDashboard(data.user);
+            else err.textContent = data.error || 'Connection failed';
+        } catch(e) { err.textContent = 'Network error. Check backend.'; }
+    });
+
+    document.getElementById('btn-save-app').addEventListener('click', async () => {
+        const appId = document.getElementById('app-id-input').value.trim();
+        const appSecret = document.getElementById('app-secret-input').value.trim();
+        const err = document.getElementById('app-error'); err.textContent = '';
+        if (!appId || !appSecret) { err.textContent='Both fields required'; return; }
+        try {
+            const res = await fetch('/api/connect/app', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({app_id:appId, app_secret:appSecret}) });
+            const data = await res.json();
+            if (data.success) document.getElementById('btn-oauth-connect').disabled = false;
+            else err.textContent = data.error || 'Failed to save';
+        } catch(e) { err.textContent = 'Network error'; }
+    });
+
+    document.getElementById('btn-oauth-connect').addEventListener('click', () => window.location.href = '/connect/facebook');
+
+    function showDashboard(user) {
+        currentUser = user;
+        document.getElementById('login-screen').style.display='none';
+        document.getElementById('dashboard-screen').style.display='block';
+        document.getElementById('sidebar-user-name').textContent = user.name;
+        document.getElementById('sidebar-avatar').src = user.picture || '';
+        loadAllData();
+        loadFolders();
+    }
+    function logout() { fetch('/logout'); location.reload(); }
+
+    // Navigation
+    const sectionTitles = {
+        dashboard:'Dashboard', accounts:'Accounts', pages:'Pages', workflows:'Workflows',
+        calendar:'Content Calendar', upload:'Upload Center', library:'Media Library',
+        analytics:'Analytics', settings:'Settings'
+    };
+    function showSection(name) {
+        document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
+        document.getElementById('section-'+name).classList.add('active');
+        document.getElementById('pageTitle').textContent = sectionTitles[name];
+        document.querySelectorAll('.sidebar .nav-menu li a').forEach(a => a.classList.remove('active'));
+        document.querySelector(`[data-section="${name}"]`).classList.add('active');
+        if (name==='accounts') loadAccounts();
+        if (name==='pages') loadPages();
+        if (name==='workflows') loadWorkflows();
+        if (name==='calendar') initCalendar();
+        if (name==='library') loadMediaLibrary();
+        if (name==='analytics') loadAnalyticsOverview();
+        if (name==='settings') loadSettings();
+    }
+    document.querySelectorAll('[data-section]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); showSection(a.dataset.section); }));
+
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+
+    // Data
+    async function loadAllData() {
+        await loadDashboardData();
+        await loadPages();
+    }
+
+    async function loadDashboardData() {
+        try {
+            const pagesRes = await fetch('/api/pages'); const pagesData = await pagesRes.json();
+            document.getElementById('stat-pages').textContent = pagesData.length;
+            const totalFollowers = pagesData.reduce((a,p) => a + (p.fan_count||0), 0);
+            document.getElementById('stat-followers').textContent = totalFollowers.toLocaleString();
+            document.getElementById('stat-reach').textContent = pagesData.reduce((a,p) => a + (p.reach||0), 0).toLocaleString();
+
+            const schedRes = await fetch('/api/scheduled-posts'); const sched = await schedRes.json();
+            document.getElementById('stat-scheduled').textContent = sched.filter(p=>p.status==='pending').length;
+            document.getElementById('stat-published').textContent = sched.filter(p=>p.status==='published').length;
+            document.getElementById('stat-failed').textContent = sched.filter(p=>p.status==='failed').length;
+
+            new Chart(document.getElementById('dashboard-chart'), {
+                type:'line', data:{ labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'], datasets:[{ label:'Published', data:[2,5,3,7,4,6,8], borderColor:'#6C5CE7', backgroundColor:'rgba(108,92,231,0.1)', tension:0.4, fill:true }] },
+                options:{ responsive:true, plugins:{ legend:{ display:false } } }
             });
-        });
+            document.getElementById('recent-activity').innerHTML = sched.filter(p=>p.status==='published').slice(0,4).map(p => `<div class="mb-1 small">📹 ${p.caption?.substring(0,25) || 'Untitled'}</div>`).join('') || 'No posts yet';
+        } catch(e) { console.error('Dashboard error', e); }
+    }
 
-        document.getElementById('btn-token-connect').addEventListener('click', async () => {
-            const token = document.getElementById('token-input').value.trim();
-            const err = document.getElementById('token-error'); err.textContent = '';
-            if (!token) { err.textContent = 'Token required'; return; }
-            try {
-                const res = await fetch('/api/connect/token', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token })
-                });
-                const data = await res.json();
-                if (data.success) showDashboard(data.user);
-                else err.textContent = data.error || 'Connection failed';
-            } catch (e) { err.textContent = 'Network error'; }
-        });
+    async function loadPages() {
+        const res = await fetch('/api/pages'); pages = await res.json();
+        document.getElementById('pages-list').innerHTML = pages.map(p => `
+            <div class="col-md-4"><div class="stat-card">
+                <div class="d-flex align-items-center gap-2"><img src="${p.picture_url||''}" width="40" height="40" class="rounded-circle"><div><strong>${p.name}</strong><br><small style="color:var(--text-secondary)">${p.fan_count?.toLocaleString()} followers</small></div></div>
+                <div class="row text-center mt-2 small"><div class="col"><strong>${p.new_followers||0}</strong><br>New</div><div class="col"><strong>${p.reach||0}</strong><br>Reach</div><div class="col"><strong>${p.engagement||0}</strong><br>Eng</div></div>
+            </div></div>`).join('');
+    }
+    async function updatePageInsights() { await fetch('/api/pages/insights'); loadPages(); }
 
-        document.getElementById('btn-save-app').addEventListener('click', async () => {
-            const appId = document.getElementById('app-id-input').value.trim();
-            const appSecret = document.getElementById('app-secret-input').value.trim();
-            const err = document.getElementById('app-error'); err.textContent = '';
-            if (!appId || !appSecret) { err.textContent = 'Both fields required'; return; }
-            try {
-                const res = await fetch('/api/connect/app', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ app_id: appId, app_secret: appSecret })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('btn-oauth-connect').disabled = false;
-                    err.textContent = '';
-                } else {
-                    err.textContent = data.error || 'Failed to save credentials';
-                }
-            } catch (e) { err.textContent = 'Network error'; }
-        });
-
-        document.getElementById('btn-oauth-connect').addEventListener('click', () => {
-            window.location.href = '/connect/facebook';
-        });
-
-        function showDashboard(user) {
-            currentUser = user;
-            document.getElementById('login-screen').style.display = 'none';
-            document.getElementById('dashboard-screen').style.display = 'block';
-            document.getElementById('sidebar-user-name').textContent = user.name;
-            document.getElementById('sidebar-avatar').src = user.picture || '';
-            loadDashboardData();
-            loadFolders();
-            loadNotifications();
+    // Workflows
+    async function loadWorkflows() {
+        if (!pages.length) pages = await (await fetch('/api/pages')).json();
+        let html = '';
+        for (const page of pages) {
+            const schedRes = await fetch(`/api/page/${page.id}/schedule`);
+            const sched = await schedRes.json();
+            const times = sched.post_times || [];
+            const auto = sched.auto_publish || false;
+            html += `
+            <div class="col-lg-4 col-md-6"><div class="stat-card">
+                <div class="d-flex align-items-center gap-2 mb-2"><img src="${page.picture_url||''}" width="36" class="rounded-circle"><div><strong>${page.name}</strong><br><small style="color:var(--text-secondary)">${page.fan_count?.toLocaleString()} followers</small></div></div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span>Automation</span>
+                    <label class="toggle-switch"><input type="checkbox" ${auto?'checked':''} onchange="toggleAutomation('${page.id}', this.checked)"><span class="slider round"></span></label>
+                </div>
+                <small style="color:var(--text-secondary)">Schedule: ${times.length ? times.join(', ') : 'Not set'}</small>
+                <button class="btn btn-sm btn-glass w-100 mt-2" onclick="openScheduleEditor('${page.id}')"><i class="fas fa-edit"></i> Edit</button>
+            </div></div>`;
         }
+        document.getElementById('workflow-cards').innerHTML = html || '<p style="color:var(--text-secondary)">No pages connected.</p>';
+    }
 
-        function logout() { fetch('/logout'); location.reload(); }
+    async function toggleAutomation(pageId, enabled) {
+        await fetch(`/api/page/${pageId}/schedule`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({auto_publish:enabled}) });
+    }
 
-        // Navigation
-        const sectionTitles = {
-            dashboard:'Dashboard', accounts:'Accounts', pages:'Pages', workflows:'Workflows',
-            calendar:'Content Calendar', upload:'Upload Center', library:'Media Library',
-            analytics:'Analytics', notifications:'Notifications', settings:'Settings'
-        };
-
-        function showSection(name) {
-            document.querySelectorAll('.dashboard-section').forEach(s => s.classList.remove('active'));
-            document.getElementById('section-' + name).classList.add('active');
-            document.getElementById('pageTitle').textContent = sectionTitles[name];
-            document.querySelectorAll('.sidebar .nav-menu li a').forEach(a => a.classList.remove('active'));
-            document.querySelector(`[data-section="${name}"]`).classList.add('active');
-            if (name === 'accounts') loadAccounts();
-            if (name === 'pages') loadPages();
-            if (name === 'workflows') loadWorkflows();
-            if (name === 'calendar') loadCalendar();
-            if (name === 'library') loadMediaLibrary();
-            if (name === 'analytics') loadAnalytics();
-            if (name === 'notifications') loadNotifications();
-            if (name === 'settings') loadSettings();
-        }
-        document.querySelectorAll('[data-section]').forEach(a => a.addEventListener('click', e => {
-            e.preventDefault();
-            showSection(a.dataset.section);
-        }));
-
-        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
-        document.getElementById('currentDate').textContent = new Date().toLocaleDateString();
-
-        // Dashboard Data
-        async function loadDashboardData() {
-            try {
-                const pagesRes = await fetch('/api/pages');
-                const pages = await pagesRes.json();
-                document.getElementById('stat-pages').textContent = pages.length;
-                let totalFollowers = pages.reduce((acc,p) => acc + p.fan_count, 0);
-                document.getElementById('stat-followers').textContent = totalFollowers.toLocaleString();
-
-                const schedRes = await fetch('/api/scheduled-posts');
-                const sched = await schedRes.json();
-                document.getElementById('stat-scheduled').textContent = sched.filter(p=>p.status==='pending').length;
-                document.getElementById('stat-published').textContent = sched.filter(p=>p.status==='published').length;
-                document.getElementById('stat-failed').textContent = sched.filter(p=>p.status==='failed').length;
-                document.getElementById('stat-active-workflows').textContent = '1';
-                document.getElementById('stat-pending-queue').textContent = sched.filter(p=>p.status==='pending').length;
-
-                document.getElementById('recent-posts').innerHTML = '<h6>Recent Published Posts</h6>' + sched.filter(p=>p.status==='published').slice(0,5).map(p => `<p>📹 ${p.caption || 'Untitled'} – ${new Date(p.scheduled_time).toLocaleString()}</p>`).join('');
-                document.getElementById('activity-feed').innerHTML = '<h6>Live Activity</h6><p>✅ System ready</p>';
-            } catch(e) { console.error(e); }
-        }
-
-        // Accounts
-        async function loadAccounts() {
-            const res = await fetch('/api/profile');
-            const user = await res.json();
-            document.getElementById('accounts-list').innerHTML = `
-                <div class="col-md-4">
-                    <div class="card p-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <img src="${user.picture}" width="50" height="50" class="rounded-circle">
-                            <div>
-                                <strong>${user.name}</strong><br>
-                                <small>${user.pages_count} pages</small><br>
-                                <span class="badge bg-success">Active</span>
-                            </div>
-                        </div>
-                        <button class="btn btn-sm btn-outline-secondary mt-2" onclick="refreshPages()">Refresh Pages</button>
-                    </div>
-                </div>`;
-        }
-
-        async function refreshPages() {
-            await fetch('/api/pages/insights');
-            loadPages();
-        }
-
-        // Pages
-        async function loadPages() {
-            const res = await fetch('/api/pages');
-            const pages = await res.json();
-            document.getElementById('pages-list').innerHTML = pages.map(p => `
-                <div class="col-md-4">
-                    <div class="card p-3">
-                        <div class="d-flex align-items-center gap-2">
-                            <img src="${p.picture_url || ''}" width="50" height="50" class="rounded-circle">
-                            <div>
-                                <strong>${p.name}</strong><span class="badge bg-primary ms-1" style="font-size:0.65rem;">✔</span><br>
-                                <small>${p.category || ''}</small><br>
-                                <small>Followers: ${p.fan_count}</small>
-                            </div>
-                        </div>
-                        <div class="row mt-2 text-center">
-                            <div class="col"><strong>${p.new_followers}</strong><br>New</div>
-                            <div class="col"><strong>${p.reach}</strong><br>Reach</div>
-                            <div class="col"><strong>${p.engagement}</strong><br>Engagement</div>
-                        </div>
-                    </div>
-                </div>`).join('');
-        }
-
-        async function updatePageInsights() {
-            await fetch('/api/pages/insights');
-            loadPages();
-        }
-
-        // Workflows
-        function addTimeField() {
-            const container = document.getElementById('posting-times');
-            const input = document.createElement('input');
-            input.type = 'time';
-            input.className = 'form-control mb-1';
-            container.appendChild(input);
-        }
-        function saveWorkflowSettings() {
-            alert('Workflow settings saved! (simulated)');
-        }
-        function loadWorkflows() {
-            document.getElementById('posting-times').innerHTML = '<input type="time" class="form-control mb-1" value="05:00"><input type="time" class="form-control mb-1" value="10:00"><input type="time" class="form-control mb-1" value="15:00"><input type="time" class="form-control mb-1" value="19:00">';
-        }
-
-        // Calendar
-        function loadCalendar() {
-            const calendarEl = document.getElementById('calendar');
-            if (!calendarEl) return;
-            const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                events: async (fetchInfo, success) => {
-                    const res = await fetch('/api/scheduled-posts');
-                    const posts = await res.json();
-                    const events = posts.map(p => ({
-                        title: (p.caption || 'Untitled').substr(0,20),
-                        start: p.scheduled_time,
-                        color: p.status === 'published' ? '#42b72a' : p.status === 'pending' ? '#f7b928' : '#e41e3f'
-                    }));
-                    success(events);
-                }
-            });
-            calendar.render();
-        }
-
-        // Upload
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const folderInput = document.getElementById('folder-input');
-        const queueList = document.getElementById('queue-list');
-        const uploadSummary = document.getElementById('upload-summary');
-        const overallProgressBar = document.getElementById('overall-progress-bar');
-        const uploadProgressText = document.getElementById('upload-progress-text');
-        const uploadSpeed = document.getElementById('upload-speed');
-
-        ['dragenter','dragover','dragleave','drop'].forEach(e => dropZone.addEventListener(e, preventDefaults));
-        function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
-        dropZone.addEventListener('drop', e => {
-            const files = e.dataTransfer.files;
-            if (files.length) addToQueue(files);
-        });
-        fileInput.addEventListener('change', e => {
-            if (e.target.files.length) addToQueue(e.target.files);
-            fileInput.value = '';
-        });
-        folderInput.addEventListener('change', e => {
-            if (e.target.files.length) addToQueue(e.target.files, true);
-            folderInput.value = '';
-        });
-
-        function addToQueue(fileList, isFolder=false) {
-            const files = Array.from(fileList);
-            if (isFolder) {
-                const folderEntry = { name: '📁 Folder Upload', size: files.reduce((a,f)=>a+f.size,0), count: files.length, isFolder:true, files };
-                uploadQueue.push(folderEntry);
-            } else {
-                files.forEach(f => uploadQueue.push({ name: f.name, size: f.size, file: f, isFolder: false }));
-            }
-            updateQueueUI();
-            processQueue();
-        }
-
-        function updateQueueUI() {
-            if (!uploadQueue.length) {
-                queueList.innerHTML = '<p class="text-muted text-center">No active uploads</p>';
-                uploadSummary.style.display = 'none';
-                return;
-            }
-            uploadSummary.style.display = 'block';
-            queueList.innerHTML = uploadQueue.map(item => {
-                const icon = item.uploaded ? '✅' : (item.uploading ? '🟡' : '⏳');
-                const progress = item.progress ? ` - ${item.progress}%` : '';
-                return `<div class="d-flex align-items-center gap-2 mb-2"><span>${icon}</span><div class="flex-grow-1"><strong>${item.name}</strong><br><small>${formatSize(item.size)}${progress}</small></div></div>`;
-            }).join('');
-            const completed = uploadQueue.filter(i=>i.uploaded).length;
-            const total = uploadQueue.length;
-            uploadProgressText.textContent = `Uploading ${completed} of ${total} files`;
-            overallProgressBar.style.width = total ? (completed / total * 100) + '%' : '0%';
-            uploadSpeed.textContent = calculateSpeed();
-        }
-
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024, sizes = ['B','KB','MB','GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k,i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        function calculateSpeed() {
-            if (!startTime) return '0 MB/s';
-            const elapsed = (Date.now() - startTime) / 1000;
-            if (elapsed < 0.5) return '0 MB/s';
-            return (totalUploaded / elapsed / (1024*1024)).toFixed(1) + ' MB/s';
-        }
-
-        function processQueue() {
-            if (activeUploads >= MAX_CONCURRENT) return;
-            const pending = uploadQueue.findIndex(i => !i.uploading && !i.uploaded);
-            if (pending === -1) return;
-            const item = uploadQueue[pending];
-            item.uploading = true;
-            activeUploads++;
-            updateQueueUI();
-            if (item.isFolder) { uploadFolder(item, pending); return; }
-            uploadSingle(item, pending);
-        }
-
-        async function uploadSingle(item, index) {
-            const fd = new FormData();
-            fd.append('file', item.file);
-            fd.append('folder', document.getElementById('folder-filter')?.value || 'My Videos');
-            const xhr = new XMLHttpRequest();
-            xhr.open('POST', '/api/upload-media');
-            xhr.upload.onprogress = e => {
-                if (e.lengthComputable) {
-                    item.progress = Math.round(e.loaded / e.total * 100);
-                    updateQueueUI();
-                }
-            };
-            xhr.onload = () => {
-                if (xhr.status === 200) {
-                    item.uploaded = true;
-                    totalUploaded = (totalUploaded || 0) + item.size;
-                    if (!startTime) startTime = Date.now();
-                    loadMediaLibrary();
-                } else {
-                    item.failed = true;
-                }
-                item.uploading = false;
-                activeUploads--;
-                updateQueueUI();
-                processQueue();
-            };
-            xhr.onerror = () => {
-                item.failed = true;
-                item.uploading = false;
-                activeUploads--;
-                updateQueueUI();
-                processQueue();
-            };
-            xhr.send(fd);
-        }
-
-        function uploadFolder(folderItem, index) {
-            const files = folderItem.files;
-            uploadQueue.splice(index, 1);
-            files.forEach(f => uploadQueue.push({ name: f.name, size: f.size, file: f, isFolder: false }));
-            updateQueueUI();
-            processQueue();
-        }
-
-        // Media Library
-        let currentMediaView = 'grid';
-        function toggleView(view) { currentMediaView = view; loadMediaLibrary(); }
-        async function loadMediaLibrary() {
-            const folder = document.getElementById('folder-filter').value;
-            const type = document.getElementById('type-filter').value;
-            let url = '/api/media?folder='+encodeURIComponent(folder);
-            if (type) url += '&type='+type;
-            const res = await fetch(url);
-            const files = await res.json();
-            if (currentMediaView === 'grid') {
-                document.getElementById('media-grid').innerHTML = files.map(f => `
-                    <div class="col-md-3 col-6">
-                        <div class="media-card">
-                            <div style="height:80px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;border-radius:6px;">
-                                <i class="fas ${f.file_type==='video'?'fa-file-video':'fa-file-image'} fa-2x text-secondary"></i>
-                            </div>
-                            <strong>${f.original_name}</strong><br><small>${formatSize(f.file_size)}</small>
-                            <div class="mt-2 d-flex gap-1">
-                                <button class="btn btn-sm btn-outline-secondary" onclick="renameMedia(${f.id})"><i class="fas fa-edit"></i></button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="deleteMedia(${f.id})"><i class="fas fa-trash"></i></button>
-                                <button class="btn btn-sm btn-primary" onclick="showPublishModal(${f.id},'${f.original_name}','${f.file_type}')"><i class="fab fa-facebook"></i></button>
-                            </div>
-                        </div>
-                    </div>`).join('');
-            } else {
-                document.getElementById('media-grid').innerHTML = `
-                    <table class="table table-hover">
-                        <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Date</th><th>Actions</th></tr></thead>
-                        <tbody>${files.map(f => `
-                            <tr>
-                                <td>${f.original_name}</td>
-                                <td>${f.file_type}</td>
-                                <td>${formatSize(f.file_size)}</td>
-                                <td>${new Date(f.upload_date).toLocaleDateString()}</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-secondary" onclick="renameMedia(${f.id})"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteMedia(${f.id})"><i class="fas fa-trash"></i></button>
-                                    <button class="btn btn-sm btn-primary" onclick="showPublishModal(${f.id},'${f.original_name}','${f.file_type}')"><i class="fab fa-facebook"></i></button>
-                                </td>
-                            </tr>`).join('')}
-                        </tbody>
-                    </table>`;
-            }
-        }
-
-        async function deleteMedia(id) {
-            if (!confirm('Delete this file?')) return;
-            await fetch(`/api/media/${id}`, { method: 'DELETE' });
-            loadMediaLibrary();
-        }
-        async function renameMedia(id) {
-            const newName = prompt('New name:');
-            if (!newName) return;
-            await fetch(`/api/media/${id}/rename`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ new_name: newName }) });
-            loadMediaLibrary();
-        }
-
-        async function showPublishModal(mediaId, filename, fileType) {
-            const pagesRes = await fetch('/api/pages');
-            const pages = await pagesRes.json();
-            const options = pages.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+    function openScheduleEditor(pageId) {
+        fetch(`/api/page/${pageId}/schedule`).then(res => res.json()).then(sched => {
+            const times = sched.post_times || [];
             const html = `
-                <div class="modal fade" id="publishModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header"><h5>Publish ${filename}</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-                            <div class="modal-body">
-                                <div class="mb-3"><label>Page</label><select class="form-select" id="pub-page">${options}</select></div>
-                                <div class="mb-3"><label>Caption</label><textarea class="form-control" id="pub-caption" rows="2"></textarea></div>
-                                <div class="mb-3"><label>Schedule (optional)</label><input type="datetime-local" class="form-control" id="pub-schedule"></div>
-                            </div>
-                            <div class="modal-footer">
-                                <button class="btn btn-success" id="btn-publish-now">Publish Now</button>
-                                <button class="btn btn-primary" id="btn-schedule">Schedule</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
+            <div class="modal fade" id="scheduleModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+                <div class="modal-header"><h5>Edit Schedule</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="mb-3"><label>Posting Times</label><div id="time-inputs">${times.map(t => `<input type="time" class="form-control mb-1" value="${t}">`).join('')}</div>
+                    <button class="btn btn-sm btn-outline-secondary mt-2" onclick="addTimeInput()">+ Add Time</button></div>
+                </div>
+                <div class="modal-footer"><button class="btn btn-primary" id="btn-save-schedule">Save Schedule</button></div>
+            </div></div></div>`;
             document.body.insertAdjacentHTML('beforeend', html);
-            const modal = new bootstrap.Modal(document.getElementById('publishModal'));
-            modal.show();
-            document.getElementById('btn-publish-now').onclick = async () => {
-                const page = document.getElementById('pub-page').value;
-                const caption = document.getElementById('pub-caption').value;
-                const res = await fetch('/api/publish-now', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page_id: page, media_id: mediaId, caption })
-                });
-                const data = await res.json();
-                if (data.success) { alert('Published!'); modal.hide(); loadDashboardData(); }
-                else alert('Error: ' + data.error);
+            const modal = new bootstrap.Modal(document.getElementById('scheduleModal')); modal.show();
+            document.getElementById('btn-save-schedule').onclick = async () => {
+                const newTimes = Array.from(document.querySelectorAll('#time-inputs input')).map(i => i.value).filter(v => v);
+                await fetch(`/api/page/${pageId}/schedule`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({post_times: newTimes}) });
+                modal.hide(); loadWorkflows();
             };
-            document.getElementById('btn-schedule').onclick = async () => {
-                const page = document.getElementById('pub-page').value;
-                const caption = document.getElementById('pub-caption').value;
-                const time = document.getElementById('pub-schedule').value;
-                if (!time) return alert('Select time');
-                const res = await fetch('/api/schedule', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page_id: page, media_id: mediaId, caption, scheduled_time: new Date(time).toISOString() })
-                });
-                const data = await res.json();
-                if (data.success) { alert('Scheduled!'); modal.hide(); }
-                else alert('Error: ' + data.error);
-            };
-            document.getElementById('publishModal').addEventListener('hidden.bs.modal', () => document.getElementById('publishModal').remove());
-        }
-
-        // Analytics
-        async function loadAnalytics() {
-            const ctx = document.getElementById('chart-overview').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan','Feb','Mar','Apr'],
-                    datasets: [{
-                        label: 'Followers',
-                        data: [5000, 5500, 6200, 7000],
-                        borderColor: '#1877f2'
-                    }]
-                }
-            });
-        }
-
-        // Notifications
-        async function loadNotifications() {
-            const res = await fetch('/api/notifications');
-            const notifs = await res.json();
-            document.getElementById('notif-list').innerHTML = notifs.map(n => `
-                <div class="alert alert-info">${n.message} <small class="text-muted">${new Date(n.timestamp).toLocaleString()}</small></div>
-            `).join('');
-            document.getElementById('notif-count').textContent = notifs.length;
-        }
-
-        // Settings
-        async function loadSettings() {
-            const res = await fetch('/api/settings');
-            const s = await res.json();
-            document.getElementById('set-fb-app-id').value = s.fb_app_id || '';
-            document.getElementById('set-fb-app-secret').value = s.fb_app_secret || '';
-            document.getElementById('set-groq-key').value = s.groq_api_key || '';
-            document.getElementById('set-timezone').value = s.timezone || 'UTC';
-            document.getElementById('set-dev-name').value = s.developer_name || '';
-            document.getElementById('set-dev-email').value = s.developer_email || '';
-            document.getElementById('set-dev-phone').value = s.developer_phone || '';
-            document.getElementById('set-dev-fb').value = s.developer_facebook || '';
-            document.getElementById('set-dev-wa').value = s.developer_whatsapp || '';
-            document.getElementById('set-dev-tg').value = s.developer_telegram || '';
-            document.getElementById('set-dev-web').value = s.developer_website || '';
-        }
-        document.getElementById('settings-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                fb_app_id: document.getElementById('set-fb-app-id').value,
-                fb_app_secret: document.getElementById('set-fb-app-secret').value,
-                groq_api_key: document.getElementById('set-groq-key').value,
-                timezone: document.getElementById('set-timezone').value,
-                developer_name: document.getElementById('set-dev-name').value,
-                developer_email: document.getElementById('set-dev-email').value,
-                developer_phone: document.getElementById('set-dev-phone').value,
-                developer_facebook: document.getElementById('set-dev-fb').value,
-                developer_whatsapp: document.getElementById('set-dev-wa').value,
-                developer_telegram: document.getElementById('set-dev-tg').value,
-                developer_website: document.getElementById('set-dev-web').value
-            };
-            await fetch('/api/settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-            alert('Settings saved!');
         });
+    }
 
-        // Init
-        async function loadFolders() {
-            const res = await fetch('/api/media/folders');
-            const folders = await res.json();
-            const select = document.getElementById('folder-filter');
-            select.innerHTML = '<option value="">All Folders</option>' + folders.map(f => `<option value="${f}">${f}</option>`).join('');
+    function addTimeInput() {
+        const container = document.getElementById('time-inputs');
+        const input = document.createElement('input'); input.type='time'; input.className='form-control mb-1';
+        container.appendChild(input);
+    }
+
+    function startAllAutomation() { pages.forEach(p => toggleAutomation(p.id, true)); setTimeout(loadWorkflows, 300); }
+
+    // Upload & Media (simplified but functional)
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const folderInput = document.getElementById('folder-input');
+    const queueList = document.getElementById('queue-list');
+    const uploadSummary = document.getElementById('upload-summary');
+    const overallProgressBar = document.getElementById('overall-progress-bar');
+    const uploadProgressText = document.getElementById('upload-progress-text');
+    const uploadSpeed = document.getElementById('upload-speed');
+
+    ['dragenter','dragover','dragleave','drop'].forEach(e => dropZone.addEventListener(e, preventDefaults));
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+    dropZone.addEventListener('drop', e => { if(e.dataTransfer.files.length) addToQueue(e.dataTransfer.files); });
+    fileInput.addEventListener('change', e => { if(e.target.files.length) addToQueue(e.target.files); fileInput.value=''; });
+    folderInput.addEventListener('change', e => { if(e.target.files.length) addToQueue(e.target.files, true); folderInput.value=''; });
+
+    function addToQueue(fileList, isFolder=false) {
+        const files = Array.from(fileList);
+        if(isFolder) {
+            uploadQueue.push({ name:'📁 Folder', size:files.reduce((a,f)=>a+f.size,0), files, isFolder:true, uploading:false, uploaded:false });
+        } else {
+            files.forEach(f => uploadQueue.push({ name:f.name, size:f.size, file:f, uploading:false, uploaded:false }));
         }
+        updateQueueUI();
+        processQueue();
+    }
+    function updateQueueUI() {
+        if(!uploadQueue.length) { queueList.innerHTML='<p class="text-muted small">No uploads</p>'; uploadSummary.style.display='none'; return; }
+        uploadSummary.style.display='block';
+        queueList.innerHTML = uploadQueue.map(item => {
+            const icon = item.uploaded ? '✅' : (item.uploading ? '🟡' : '⏳');
+            return `<div class="d-flex align-items-center gap-2 mb-1 small"><span>${icon}</span> ${item.name} (${formatSize(item.size)})</div>`;
+        }).join('');
+        const completed = uploadQueue.filter(i=>i.uploaded).length;
+        uploadProgressText.textContent = `${completed}/${uploadQueue.length}`;
+        overallProgressBar.style.width = (completed/uploadQueue.length*100)+'%';
+    }
+    function formatSize(b) { return b>1024*1024 ? (b/(1024*1024)).toFixed(1)+' MB' : (b/1024).toFixed(1)+' KB'; }
+    function processQueue() {
+        if(activeUploads>=MAX_CONCURRENT) return;
+        const pending = uploadQueue.findIndex(i => !i.uploading && !i.uploaded);
+        if(pending===-1) return;
+        const item = uploadQueue[pending];
+        item.uploading = true; activeUploads++;
+        updateQueueUI();
+        if(item.isFolder) { uploadFolder(item, pending); return; }
+        uploadSingle(item, pending);
+    }
+    async function uploadSingle(item, index) {
+        const fd = new FormData(); fd.append('file', item.file); fd.append('folder', document.getElementById('folder-filter')?.value || 'My Videos');
+        const xhr = new XMLHttpRequest(); xhr.open('POST','/api/upload-media');
+        xhr.upload.onprogress = e => { if(e.lengthComputable) item.progress = Math.round(e.loaded/e.total*100); updateQueueUI(); };
+        xhr.onload = () => { if(xhr.status===200) { item.uploaded = true; loadMediaLibrary(); } else item.failed = true; item.uploading=false; activeUploads--; updateQueueUI(); processQueue(); };
+        xhr.onerror = () => { item.failed=true; item.uploading=false; activeUploads--; updateQueueUI(); processQueue(); };
+        xhr.send(fd);
+    }
+    function uploadFolder(folderItem, index) { folderItem.files.forEach(f => uploadQueue.push({ name:f.name, size:f.size, file:f })); uploadQueue.splice(index,1); updateQueueUI(); processQueue(); }
 
-        (async () => {
-            try {
-                const res = await fetch('/api/me');
-                const data = await res.json();
-                if (data.authenticated) showDashboard(data.user);
-            } catch (e) {}
-        })();
-    </script>
+    let currentMediaView = 'grid';
+    function toggleView(v) { currentMediaView = v; loadMediaLibrary(); }
+    async function loadMediaLibrary() {
+        const folder = document.getElementById('folder-filter').value;
+        const type = document.getElementById('type-filter').value;
+        let url = '/api/media?folder='+encodeURIComponent(folder);
+        if(type) url += '&type='+type;
+        const res = await fetch(url); const files = await res.json();
+        if(currentMediaView==='grid') {
+            document.getElementById('media-grid').innerHTML = files.map(f => `
+            <div class="col-lg-2 col-md-3 col-4"><div class="stat-card text-center">
+                <i class="fas ${f.file_type==='video'?'fa-file-video':'fa-file-image'} fa-2x" style="color:var(--primary);"></i>
+                <div class="small text-truncate">${f.original_name}</div><small style="color:var(--text-secondary)">${formatSize(f.file_size)}</small>
+                <div class="mt-2 d-flex justify-content-center gap-1">
+                    <button class="btn btn-sm btn-glass" onclick="assignMediaToPage(${f.id})"><i class="fas fa-tag"></i></button>
+                    <button class="btn btn-sm btn-glass text-danger" onclick="deleteMedia(${f.id})"><i class="fas fa-trash"></i></button>
+                </div>
+            </div></div>`).join('');
+        } else {
+            document.getElementById('media-grid').innerHTML = `
+                <table class="table table-hover"><thead><tr><th>Name</th><th>Type</th><th>Size</th><th></th></tr></thead><tbody>
+                ${files.map(f => `<tr><td>${f.original_name}</td><td>${f.file_type}</td><td>${formatSize(f.file_size)}</td><td>
+                    <button class="btn btn-sm btn-glass" onclick="assignMediaToPage(${f.id})"><i class="fas fa-tag"></i></button>
+                    <button class="btn btn-sm btn-glass text-danger" onclick="deleteMedia(${f.id})"><i class="fas fa-trash"></i></button>
+                </td></tr>`).join('')}
+                </tbody></table>`;
+        }
+    }
+
+    async function assignMediaToPage(mediaId) {
+        const pagesList = await (await fetch('/api/pages')).json();
+        const options = pagesList.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        const html = `<div class="modal fade" id="assignModal"><div class="modal-dialog modal-sm"><div class="modal-content"><div class="modal-header"><h6>Assign to Page</h6></div><div class="modal-body"><select id="assign-page" class="form-select">${options}</select></div><div class="modal-footer"><button class="btn btn-primary" id="btn-assign">Assign</button></div></div></div></div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        const modal = new bootstrap.Modal(document.getElementById('assignModal')); modal.show();
+        document.getElementById('btn-assign').onclick = async () => {
+            await fetch(`/api/media/${mediaId}/assign`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({page_id: document.getElementById('assign-page').value}) });
+            modal.hide(); document.getElementById('assignModal').remove(); loadMediaLibrary();
+        };
+    }
+
+    async function deleteMedia(id) { if(!confirm('Delete?')) return; await fetch(`/api/media/${id}`, {method:'DELETE'}); loadMediaLibrary(); }
+
+    // Calendar
+    function initCalendar() {
+        const calendarEl = document.getElementById('calendar'); if(!calendarEl) return;
+        new FullCalendar.Calendar(calendarEl, {
+            initialView:'dayGridMonth',
+            events: async (info, success) => {
+                const res = await fetch('/api/scheduled-posts'); const posts = await res.json();
+                success(posts.map(p => ({ title:(p.caption||'Post').substr(0,20), start:p.scheduled_time, color: p.status==='published'?'#6C5CE7':p.status==='pending'?'#f7b928':'#e41e3f' })));
+            }
+        }).render();
+    }
+
+    // Analytics (placeholder with real data)
+    async function loadAnalyticsOverview() {
+        const pageId = pages.length ? pages[0].id : null;
+        if(!pageId) return;
+        const res = await fetch(`/api/analytics/${pageId}`);
+        const data = await res.json();
+        // Use data for charts (simplified)
+        const labels = data.page_impressions ? data.page_impressions.map(v => v.date.slice(0,10)) : ['No data'];
+        const values = data.page_impressions ? data.page_impressions.map(v => v.value) : [0];
+        new Chart(document.getElementById('chart-overview'), {
+            type:'line', data:{ labels, datasets:[{ label:'Impressions', data:values, borderColor:'#6C5CE7' }] }
+        });
+    }
+
+    // Settings
+    async function loadSettings() {
+        const res = await fetch('/api/settings'); const s = await res.json();
+        document.getElementById('set-fb-app-id').value = s.fb_app_id||'';
+        document.getElementById('set-fb-app-secret').value = s.fb_app_secret||'';
+        document.getElementById('set-groq-key').value = s.groq_api_key||'';
+        document.getElementById('set-timezone').value = s.timezone||'UTC';
+        document.getElementById('set-dev-name').value = s.developer_name||'';
+        document.getElementById('set-dev-email').value = s.developer_email||'';
+    }
+    document.getElementById('settings-form').addEventListener('submit', async e => {
+        e.preventDefault(); const data = Object.fromEntries(new FormData(e.target));
+        await fetch('/api/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) });
+        alert('Saved');
+    });
+
+    // Folders
+    async function loadFolders() {
+        const res = await fetch('/api/media/folders'); const folders = await res.json();
+        const select = document.getElementById('folder-filter');
+        select.innerHTML = '<option value="">All Folders</option>' + folders.map(f => `<option>${f}</option>`).join('');
+    }
+
+    // Check auth on load
+    (async () => {
+        try { const res = await fetch('/api/me'); const data = await res.json(); if(data.authenticated) showDashboard(data.user); } catch(e) {}
+    })();
+</script>
 </body>
 </html>
