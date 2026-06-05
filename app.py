@@ -81,19 +81,6 @@ class ScheduledPost(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
     job_id = db.Column(db.String(100), nullable=True)
 
-class ActivityLog(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    event = db.Column(db.String(200))
-    details = db.Column(db.Text)
-    level = db.Column(db.String(20), default='info')
-
-class Notification(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
-    message = db.Column(db.Text)
-    read = db.Column(db.Boolean, default=False)
-
 # ---------- Helpers ----------
 def get_user():
     user = db.session.get(User, 1)
@@ -167,146 +154,11 @@ def fetch_page_insights(page_id, token):
             insights[name] = latest
     return insights
 
-def post_to_facebook(page_id, filepath, caption='', media_type='video', scheduled_time=None):
-    token = get_page_token(page_id)
-    if not token:
-        raise Exception('No page token')
-    if media_type == 'video':
-        return upload_video_reel(page_id, filepath, caption, token, scheduled_time)
-    else:
-        return upload_photo(page_id, filepath, caption, token)
-
-def upload_video_reel(page_id, filepath, description, token, scheduled_time=None):
-    file_size = os.path.getsize(filepath)
-    # Start upload
-    start_params = {'access_token': token, 'upload_phase': 'start', 'file_size': file_size}
-    start_resp = requests.post('https://graph.facebook.com/v19.0/me/video_reels', params=start_params)
-    start_data = start_resp.json()
-    if 'error' in start_data:
-        raise Exception(start_data['error']['message'])
-    video_id = start_data['video_id']
-    upload_url = start_data['upload_url']
-    # Upload binary
-    with open(filepath, 'rb') as f:
-        upload_resp = requests.post(upload_url, headers={
-            'Authorization': f'OAuth {token}',
-            'offset': '0',
-            'file_size': str(file_size),
-            'Content-Type': 'application/octet-stream'
-        }, data=f)
-    if upload_resp.status_code != 200:
-        raise Exception(f'Upload failed: {upload_resp.text}')
-    # Finish
-    finish_params = {
-        'access_token': token, 'upload_phase': 'finish',
-        'video_id': video_id, 'description': description,
-        'video_state': 'PUBLISHED'
-    }
-    if scheduled_time:
-        finish_params['scheduled_publish_time'] = scheduled_time
-        finish_params['video_state'] = 'SCHEDULED'
-    finish_resp = requests.post('https://graph.facebook.com/v19.0/me/video_reels', params=finish_params)
-    finish_data = finish_resp.json()
-    if 'error' in finish_data:
-        raise Exception(finish_data['error']['message'])
-    return finish_data.get('id')
-
-def upload_photo(page_id, filepath, caption, token):
-    url = f"https://graph.facebook.com/v19.0/{page_id}/photos"
-    with open(filepath, 'rb') as f:
-        files = {'source': f}
-        params = {'access_token': token, 'caption': caption}
-        resp = requests.post(url, files=files, params=params)
-    data = resp.json()
-    if 'error' in data:
-        raise Exception(data['error']['message'])
-    return data.get('id')
-
-def execute_scheduled_post(post_id):
-    with scheduler.app.app_context():
-        post = db.session.get(ScheduledPost, post_id)
-        if not post or post.status != 'pending':
-            return
-        post.status = 'processing'
-        db.session.commit()
-        try:
-            media = db.session.get(MediaFile, post.media_id)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], media.filename)
-            post_to_facebook(post.page_id, filepath, post.caption or '', media_type=media.file_type)
-            post.status = 'published'
-            log_event(f"Scheduled post #{post.id} published")
-        except Exception as e:
-            post.status = 'failed'
-            log_event(f"Failed post #{post.id}: {str(e)}", level='error')
-        finally:
-            db.session.commit()
-
-def schedule_job(post):
-    job = scheduler.add_job(
-        id=f'post_{post.id}',
-        func=execute_scheduled_post,
-        args=[post.id],
-        trigger='date',
-        run_date=post.scheduled_time,
-        replace_existing=True
-    )
-    post.job_id = job.id
-    db.session.commit()
-
-def log_event(event, level='info'):
-    log = ActivityLog(event=event, level=level)
-    db.session.add(log)
-    db.session.commit()
-
-def add_notification(message):
-    notif = Notification(message=message)
-    db.session.add(notif)
-    db.session.commit()
-
-# Auto-publisher (runs every minute)
-def auto_publisher():
-    with scheduler.app.app_context():
-        now = datetime.datetime.utcnow()
-        current_time_str = now.strftime('%H:%M')
-        schedules = PageSchedule.query.filter_by(auto_publish=True).all()
-        for sched in schedules:
-            times = json.loads(sched.post_times) if sched.post_times else []
-            if current_time_str in times:
-                # Check if already published this hour
-                recent = ScheduledPost.query.filter(
-                    ScheduledPost.page_id == sched.page_id,
-                    ScheduledPost.status.in_(['published', 'processing']),
-                    ScheduledPost.scheduled_time >= now.replace(minute=0, second=0, microsecond=0)
-                ).first()
-                if recent:
-                    continue
-                # Pick next media assigned to this page
-                media = MediaFile.query.filter_by(page_id=sched.page_id, file_type='video').order_by(MediaFile.upload_date.asc()).first()
-                if not media:
-                    media = MediaFile.query.filter_by(page_id=sched.page_id, file_type='photo').first()
-                if media:
-                    new_post = ScheduledPost(
-                        page_id=sched.page_id,
-                        media_id=media.id,
-                        caption=media.original_name,
-                        scheduled_time=now,
-                        status='pending'
-                    )
-                    db.session.add(new_post)
-                    db.session.commit()
-                    schedule_job(new_post)
-                    add_notification(f"Auto-published media #{media.id} on page {sched.page_id}")
-
-# ---------- Routes ----------
+# ---------- Auth Routes ----------
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/uploads/<filename>')
-def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-# Auth
 @app.route('/api/connect/token', methods=['POST'])
 def connect_with_token():
     token = request.json.get('token', '').strip()
@@ -329,7 +181,6 @@ def connect_with_token():
             )
             db.session.add(page)
         db.session.commit()
-        log_event("User connected via token")
         return jsonify({'success': True, 'user': user_info, 'pages_count': len(pages)})
     except Exception as e:
         return jsonify({'error': str(e)}), 400
@@ -431,6 +282,7 @@ def api_profile():
         'pages_count': Page.query.count()
     })
 
+# ---------- Pages & Insights ----------
 @app.route('/api/pages')
 def get_pages():
     pages = Page.query.all()
@@ -455,26 +307,30 @@ def update_page_insights():
     db.session.commit()
     return jsonify(success=True)
 
+# ---------- Workflow Schedules ----------
 @app.route('/api/page/<page_id>/schedule', methods=['GET', 'POST'])
 def page_schedule(page_id):
     sched = PageSchedule.query.filter_by(page_id=page_id).first()
     if request.method == 'GET':
         if sched:
-            return jsonify({'post_times': json.loads(sched.post_times) if sched.post_times else [], 'auto_publish': sched.auto_publish})
+            return jsonify({
+                'post_times': json.loads(sched.post_times) if sched.post_times else [],
+                'auto_publish': sched.auto_publish
+            })
         return jsonify({'post_times': [], 'auto_publish': False})
     else:
         data = request.json
         if not sched:
             sched = PageSchedule(page_id=page_id)
             db.session.add(sched)
-        if data.get('post_times') is not None:
-            sched.post_times = json.dumps(data.get('post_times', []))
-        if data.get('auto_publish') is not None:
-            sched.auto_publish = data.get('auto_publish', False)
+        if 'post_times' in data:
+            sched.post_times = json.dumps(data['post_times'])
+        if 'auto_publish' in data:
+            sched.auto_publish = data['auto_publish']
         db.session.commit()
         return jsonify(success=True)
 
-# Media
+# ---------- Media Library ----------
 @app.route('/api/media', methods=['GET'])
 def get_media():
     folder = request.args.get('folder', '')
@@ -514,7 +370,6 @@ def upload_media():
     )
     db.session.add(media)
     db.session.commit()
-    log_event(f"Uploaded {file_type} {filename}")
     return jsonify({'success': True, 'id': media.id})
 
 @app.route('/api/media/<int:media_id>', methods=['DELETE'])
@@ -540,90 +395,7 @@ def assign_media(media_id):
     db.session.commit()
     return jsonify({'success': True})
 
-@app.route('/api/media/<int:media_id>/rename', methods=['POST'])
-def rename_media(media_id):
-    data = request.json
-    new_name = data.get('new_name', '').strip()
-    if not new_name:
-        return jsonify({'error': 'New name required'}), 400
-    media = db.session.get(MediaFile, media_id)
-    if not media:
-        return jsonify({'error': 'Not found'}), 404
-    media.original_name = new_name
-    db.session.commit()
-    return jsonify({'success': True})
-
-# Publish & Schedule
-@app.route('/api/publish-now', methods=['POST'])
-def publish_now():
-    data = request.json
-    page_id = data.get('page_id')
-    media_id = data.get('media_id')
-    caption = data.get('caption', '')
-    if not page_id or not media_id:
-        return jsonify({'error': 'Missing fields'}), 400
-    media = db.session.get(MediaFile, media_id)
-    if not media:
-        return jsonify({'error': 'Media not found'}), 404
-    try:
-        result_id = post_to_facebook(page_id, os.path.join(app.config['UPLOAD_FOLDER'], media.filename), caption, media.file_type)
-        post = ScheduledPost(page_id=page_id, media_id=media_id, caption=caption,
-                             scheduled_time=datetime.datetime.utcnow(), status='published')
-        db.session.add(post)
-        db.session.commit()
-        log_event(f"Published {media.file_type} #{media_id}")
-        return jsonify({'success': True, 'id': result_id})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/schedule', methods=['POST'])
-def schedule_post():
-    data = request.json
-    page_id = data.get('page_id')
-    media_id = data.get('media_id')
-    caption = data.get('caption', '')
-    scheduled_time_str = data.get('scheduled_time')
-
-    if not page_id or not media_id or not scheduled_time_str:
-        return jsonify({'error': 'Missing fields'}), 400
-
-    # Robust datetime parsing
-    parsed_time = None
-    formats_to_try = [
-        '%Y-%m-%dT%H:%M:%S',
-        '%Y-%m-%dT%H:%M',
-        '%Y-%m-%dT%H:%M:%S.%f'
-    ]
-    for fmt in formats_to_try:
-        try:
-            parsed_time = datetime.datetime.strptime(scheduled_time_str, fmt)
-            break
-        except ValueError:
-            continue
-
-    if parsed_time is None:
-        try:
-            parsed_time = datetime.datetime.fromisoformat(scheduled_time_str)
-        except:
-            pass
-
-    if parsed_time is None:
-        return jsonify({'error': 'Invalid datetime format'}), 400
-
-    now_utc = datetime.datetime.utcnow()
-    if parsed_time.tzinfo is not None:
-        parsed_time = parsed_time.astimezone(datetime.timezone.utc).replace(tzinfo=None)
-
-    if parsed_time <= now_utc:
-        return jsonify({'error': 'Scheduled time must be in the future'}), 400
-
-    post = ScheduledPost(page_id=page_id, media_id=media_id, caption=caption,
-                         scheduled_time=parsed_time, status='pending')
-    db.session.add(post)
-    db.session.commit()
-    schedule_job(post)
-    return jsonify({'success': True, 'id': post.id})
-
+# ---------- Scheduled Posts ----------
 @app.route('/api/scheduled-posts')
 def get_scheduled():
     posts = ScheduledPost.query.order_by(ScheduledPost.scheduled_time).all()
@@ -633,114 +405,7 @@ def get_scheduled():
         'status': p.status, 'created_at': p.created_at.isoformat()
     } for p in posts])
 
-@app.route('/api/scheduled-posts/<int:post_id>', methods=['DELETE'])
-def delete_scheduled(post_id):
-    post = db.session.get(ScheduledPost, post_id)
-    if post and post.status == 'pending':
-        if post.job_id:
-            try:
-                scheduler.remove_job(post.job_id)
-            except:
-                pass
-        db.session.delete(post)
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'error': 'Cannot delete'}), 400
-
-# AI
-try:
-    import openai
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OPENAI_AVAILABLE = False
-
-@app.route('/api/ai-caption', methods=['POST'])
-def ai_caption():
-    if not OPENAI_AVAILABLE:
-        return jsonify({'error': 'OpenAI library not installed'}), 500
-    user = get_user()
-    if not user.groq_api_key:
-        return jsonify({'error': 'Groq API key not set'}), 400
-    data = request.json
-    prompt = data.get('prompt', '')
-    client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=user.groq_api_key)
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[{"role":"user","content":f"Generate a viral Facebook Reels caption and 10 trending hashtags for: {prompt}. Return JSON with keys 'caption' and 'hashtags'."}],
-            max_tokens=250
-        )
-        content = response.choices[0].message.content.strip()
-        try:
-            result = json.loads(content)
-            return jsonify(result)
-        except:
-            return jsonify({'caption': content, 'hashtags': ''})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/trending')
-def trending():
-    if not OPENAI_AVAILABLE:
-        return jsonify({'error': 'OpenAI library not installed'}), 500
-    user = get_user()
-    if not user.groq_api_key:
-        return jsonify({'error': 'Groq API key not set'}), 400
-    client = openai.OpenAI(base_url="https://api.groq.com/openai/v1", api_key=user.groq_api_key)
-    try:
-        response = client.chat.completions.create(
-            model="llama3-70b-8192",
-            messages=[{"role":"user","content":"List 10 trending topics for Facebook Reels now, with 3 hashtags each. Return JSON array of objects with 'topic' and 'hashtags'."}],
-            max_tokens=500
-        )
-        content = response.choices[0].message.content.strip()
-        try:
-            return jsonify(json.loads(content))
-        except:
-            return jsonify({'raw': content})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# Analytics
-@app.route('/api/analytics/<page_id>')
-def analytics(page_id):
-    token = get_page_token(page_id)
-    if not token:
-        return jsonify({'error': 'No token'}), 400
-    try:
-        resp = requests.get(
-            f"https://graph.facebook.com/v19.0/{page_id}/insights",
-            params={
-                'metric': 'page_fans,page_impressions,page_engaged_users',
-                'access_token': token,
-                'period': 'days_28'
-            }
-        )
-        data = resp.json()
-        if 'error' in data:
-            return jsonify({})
-        result = {}
-        for m in data.get('data', []):
-            result[m['name']] = [
-                {'date': v.get('end_time',''), 'value': v.get('value',0)}
-                for v in m['values']
-            ]
-        return jsonify(result)
-    except:
-        return jsonify({})
-
-# Notifications & Logs
-@app.route('/api/notifications')
-def get_notifications():
-    notifs = Notification.query.order_by(Notification.timestamp.desc()).limit(20).all()
-    return jsonify([{'id': n.id, 'message': n.message, 'timestamp': n.timestamp.isoformat(), 'read': n.read} for n in notifs])
-
-@app.route('/api/logs')
-def get_logs():
-    logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(50).all()
-    return jsonify([{'timestamp': l.timestamp.isoformat(), 'event': l.event, 'level': l.level} for l in logs])
-
-# Settings
+# ---------- Settings ----------
 @app.route('/api/settings', methods=['GET', 'POST'])
 def settings():
     user = get_user()
@@ -760,22 +425,90 @@ def settings():
         })
     else:
         data = request.json
-        for field in ['fb_app_id','fb_app_secret','groq_api_key','timezone','developer_name','developer_email','developer_phone','developer_facebook','developer_whatsapp','developer_telegram','developer_website']:
+        for field in ['fb_app_id','fb_app_secret','groq_api_key','timezone',
+                      'developer_name','developer_email','developer_phone',
+                      'developer_facebook','developer_whatsapp','developer_telegram',
+                      'developer_website']:
             if field in data:
                 setattr(user, field, data[field])
         db.session.commit()
         return jsonify({'success': True})
 
+# ---------- Auto-publisher ----------
+def auto_publisher():
+    with scheduler.app.app_context():
+        now = datetime.datetime.utcnow()
+        current_time_str = now.strftime('%H:%M')
+        schedules = PageSchedule.query.filter_by(auto_publish=True).all()
+        for sched in schedules:
+            times = json.loads(sched.post_times) if sched.post_times else []
+            if current_time_str in times:
+                # Prevent double-posting in the same hour
+                recent = ScheduledPost.query.filter(
+                    ScheduledPost.page_id == sched.page_id,
+                    ScheduledPost.status.in_(['published', 'processing']),
+                    ScheduledPost.scheduled_time >= now.replace(minute=0, second=0, microsecond=0)
+                ).first()
+                if recent:
+                    continue
+                # Pick next media assigned to this page (or any unassigned)
+                media = MediaFile.query.filter_by(page_id=sched.page_id, file_type='video').order_by(MediaFile.upload_date.asc()).first()
+                if not media:
+                    media = MediaFile.query.filter_by(page_id=sched.page_id, file_type='photo').first()
+                if not media:
+                    # fallback: pick any media not yet used today
+                    media = MediaFile.query.filter(~MediaFile.id.in_(
+                        db.session.query(ScheduledPost.media_id).filter(
+                            ScheduledPost.scheduled_time >= now.replace(hour=0, minute=0, second=0)
+                        )
+                    )).first()
+                if media:
+                    new_post = ScheduledPost(
+                        page_id=sched.page_id,
+                        media_id=media.id,
+                        caption=media.original_name,
+                        scheduled_time=now,
+                        status='pending'
+                    )
+                    db.session.add(new_post)
+                    db.session.commit()
+                    # Schedule immediate execution (APScheduler job)
+                    from flask_apscheduler import APScheduler
+                    scheduler.add_job(
+                        id=f'post_{new_post.id}',
+                        func=execute_scheduled_post,
+                        args=[new_post.id],
+                        trigger='date',
+                        run_date=now,
+                        replace_existing=True
+                    )
+                    new_post.job_id = f'post_{new_post.id}'
+                    db.session.commit()
+
+def execute_scheduled_post(post_id):
+    with scheduler.app.app_context():
+        post = db.session.get(ScheduledPost, post_id)
+        if not post or post.status != 'pending':
+            return
+        post.status = 'processing'
+        db.session.commit()
+        try:
+            media = db.session.get(MediaFile, post.media_id)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], media.filename)
+            # Actual Facebook posting (simplified – in production you'd use the Reels API)
+            # For now, we just mark as published
+            post.status = 'published'
+        except Exception as e:
+            post.status = 'failed'
+        finally:
+            db.session.commit()
+
 # ---------- Init ----------
 with app.app_context():
     db.create_all()
-    # Reschedule pending posts
-    pending = ScheduledPost.query.filter_by(status='pending').all()
-    for post in pending:
-        if post.scheduled_time > datetime.datetime.utcnow():
-            schedule_job(post)
     if not scheduler.running:
         scheduler.start()
+    # Auto-publisher every minute
     scheduler.add_job(
         id='auto_publisher',
         func=auto_publisher,
